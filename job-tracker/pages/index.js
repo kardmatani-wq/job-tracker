@@ -12,7 +12,7 @@ const STAGE_COLORS = {
   "Offer":        { bg:"#D1FAE5", text:"#065F46", dot:"#10B981" },
   "Rejected":     { bg:"#F3F4F6", text:"#6B7280", dot:"#9CA3AF" },
 };
-const CHECKLIST_ITEMS = [
+const CHECKLIST_ITEMS = 
   "Job URL / JD saved",
   "Resume tailored",
   "Cover letter written",
@@ -1030,7 +1030,7 @@ export default function JobTracker() {
                               </div>
                             </td>
                             <td style={{ padding:"13px 16px" }}>
-                              <div style={{ display:"flex", gap:6" }}>
+                              <div style={{ display:"flex", gap:6 }}>
                                 <button onClick={() => setDetailApp(app)} style={{ padding:"5px 10px", fontSize:11, border:"1.5px solid #E5E7EB", borderRadius:7, background:"none", cursor:"pointer", fontFamily:"inherit", color:"#374151", fontWeight:600 }}>View</button>
                                 <button onClick={e => { e.stopPropagation(); setEditApp(app); }} style={{ padding:"5px 10px", fontSize:11, border:"none", borderRadius:7, background:"#F3F4F6", cursor:"pointer", fontFamily:"inherit", color:"#374151", fontWeight:600 }}>Edit</button>
                               </div>
