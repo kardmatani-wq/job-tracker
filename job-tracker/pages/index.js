@@ -302,19 +302,34 @@ Job Description: ${jobDescription}` }],
     null, 1500
   );
 
-  // 5. Save resume to Drive
+  // 5. Save resume to Drive (copy base resume to preserve formatting)
   if (settings.resumeFolderId) {
     onStatus("Saving tailored resume to Google Drive…");
     try {
       const docName = `${company}_${role}_Resume`.replace(/\s+/g, "_");
-      const r = await driveAction("createDoc", {
-        title: docName,
-        content: results.tailoredResume,
-        folderId: settings.resumeFolderId,
-      });
+      const baseDocId = extractDocId(settings.baseResumeUrl);
+      let r;
+      if (baseDocId) {
+        // Copy the base resume (preserves all formatting, fonts, styles)
+        r = await driveAction("copyAndTailorDoc", {
+          sourceDocId: baseDocId,
+          title: docName,
+          content: results.tailoredResume,
+          folderId: settings.resumeFolderId,
+        });
+      } else {
+        // Fallback: create a new doc if no base resume URL
+        r = await driveAction("createDoc", {
+          title: docName,
+          content: results.tailoredResume,
+          folderId: settings.resumeFolderId,
+        });
+      }
       results.resumeDocUrl = r.url;
       results.resumeDocId = r.docId;
-    } catch (e) { console.warn("Resume save failed:", e.message); }
+    } catch (e) {
+      console.warn("Resume save failed:", e.message);
+    }
   }
 
   // 6. Save cover letter to Drive
