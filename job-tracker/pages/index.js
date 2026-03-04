@@ -195,23 +195,35 @@ function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDis
           <Inp label="Email Address" value={local.email || ""} onChange={e => set("email", e.target.value)} placeholder="jane@example.com" />
         </div>
         <Inp label="LinkedIn URL" value={local.linkedin || ""} onChange={e => set("linkedin", e.target.value)} placeholder="https://linkedin.com/in/janesmith" />
-        <Inp label="Portfolio / Website URL" value={local.website || ""} onChange={e => set("website", e.target.value)} placeholder="https://janesmith.dev" hint="Optional — included in cover letters if provided." />
+        <Inp label="Portfolio / Website URL" value={local.website || ""} onChange={e => set("website", e.target.value)} placeholder="https://janesmith.dev" hint="Optional - included in cover letters if provided." />
       </div>
       <Btn onClick={() => onChange(local)} variant="primary">Save Settings</Btn>
     </div>
   );
 }
 
+// ─── Helpers: post-processing ──────────────────────────────────────────────
+// Strip em-dashes and replace with a human-readable alternative
+function stripEmDashes(text) {
+  if (!text) return text;
+  // Replace em-dash with comma+space, en-dash between words with a hyphen,
+  // and any remaining en-dashes with a hyphen-minus
+  return text
+    .replace(/\u2014/g, ", ")   // em-dash → comma space
+    .replace(/\u2013/g, "-")    // en-dash → hyphen
+    .replace(/--/g, "-");        // double hyphen → single hyphen
+}
+
 // ─── AI Pipeline ────────────────────────────────────────────────────────────
 async function runAIPipeline({ jobDescription, company, role, settings, onStatus }) {
   const results = {
-    tailoredResume:"", coverLetter:"", keywordScore:null,
+    tailoredResume:"", coverLetter:"", coverLetterBody:"", keywordScore:null,
     matchedKeywords:[], missingKeywords:[], resumeChanges:[],
     resumeDocUrl:"", clDocUrl:"", resumeDocId:"", clDocId:""
   };
 
   // 1. Read base resume
-  onStatus("Reading your base resume from Google Drive…");
+  onStatus("Reading your base resume from Google Drive\u2026");
   let baseResumeContent = "";
   const baseDocId = extractDocId(settings.baseResumeUrl);
   if (baseDocId) {
@@ -225,14 +237,16 @@ async function runAIPipeline({ jobDescription, company, role, settings, onStatus
   }
 
   // 2. Tailor resume
-  onStatus("Tailoring your resume to the job…");
-  results.tailoredResume = await callClaude(
+  onStatus("Tailoring your resume to the job\u2026");
+  const rawResume = await callClaude(
     [{ role:"user", content:`You are an expert resume writer. Produce a tailored version of this resume for the role below.
+
 Rules:
 - Moderate edits: restructure bullets and reorder sections if it helps, but preserve the candidate's authentic voice
 - Mirror keywords and phrases from the JD naturally — don't stuff them awkwardly
 - Do NOT invent experience or qualifications
 - Keep the same overall structure and sections as the base resume
+- NEVER use em-dashes (—) or en-dashes (–). Use commas, colons, or rephrase instead
 - Return ONLY the resume text, no preamble or commentary
 
 BASE RESUME:
@@ -245,9 +259,10 @@ COMPANY: ${company}
 ROLE: ${role}`}],
     null, 2000
   );
+  results.tailoredResume = stripEmDashes(rawResume);
 
   // 3. Keyword score
-  onStatus("Calculating keyword match score…");
+  onStatus("Calculating keyword match score\u2026");
   try {
     const scoreText = await callClaude(
       [{ role:"user", content:`Compare this resume to the job description. Return ONLY valid JSON (no markdown, no preamble):
@@ -264,7 +279,7 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
   } catch { /* score is optional */ }
 
   // 4. Resume change summary
-  onStatus("Summarising resume changes…");
+  onStatus("Summarising resume changes\u2026");
   if (baseResumeContent) {
     try {
       const changesText = await callClaude(
@@ -291,36 +306,48 @@ ${results.tailoredResume.slice(0, 2500)}`}],
     }
   }
 
-  // 5. Cover letter
-  onStatus("Drafting your cover letter…");
-  const personalDetails = [
-    settings.phone   ? `Phone: ${settings.phone}` : "",
-    settings.email   ? `Email: ${settings.email}` : "",
-    settings.linkedin ? `LinkedIn: ${settings.linkedin}` : "",
-    settings.website ? `Portfolio: ${settings.website}` : "",
-    settings.location ? `Location: ${settings.location}` : "",
-  ].filter(Boolean).join("\n");
+  // 5. Cover letter — human, engaging, professionally formatted
+  onStatus("Drafting your cover letter\u2026");
 
-  results.coverLetter = await callClaude(
-    [{ role:"user", content:`Write a tailored, compelling cover letter for this application.
-Guidelines:
-- 3 focused paragraphs: (1) hook + why this company specifically, (2) what you bring that matches their needs, (3) confident close
-- Warm, professional tone — no generic filler phrases like "I am writing to express my interest"
-- Reference specific details from the job description
-- Sign off with the candidate's name
+  const rawCoverLetter = await callClaude(
+    [{ role:"user", content:`You are writing a cover letter on behalf of a real job seeker. Your goal is to write something that sounds like a thoughtful, confident human being wrote it — not a template, not an AI, not a corporate robot.
 
-Candidate: ${settings.name || "the applicant"}
-${personalDetails ? "Personal details:\n" + personalDetails : ""}
-Resume: ${results.tailoredResume.slice(0, 1500)}
+STRICT RULES (non-negotiable):
+- NEVER use em-dashes (—) or en-dashes (–). If you feel the urge to use one, use a comma, a period, or restructure the sentence
+- No hollow filler phrases: "I am writing to express my interest", "I am excited to apply", "I would love the opportunity", "I am passionate about", "I strongly believe"
+- No sycophantic openers. Don't start with compliments about the company
+- No corporate buzzwords: "leverage", "synergy", "dynamic", "passionate", "innovative", "collaborative"
+- Do not use bullet points
+- 3 focused paragraphs only
+- The sign-off should be exactly: "Warmly," on one line, then the candidate's name on the next line, with NO blank line between them
+
+VOICE & TONE:
+- Write like a smart, grounded person talking to another smart person
+- Be specific — name a real detail from the JD or the company that genuinely connects to the candidate's background
+- Show personality without being casual or over-familiar
+- Let the candidate's actual experience do the heavy lifting — no inflating or vague gestures at skills
+- The opening line should be a genuine hook: a specific observation, a concrete achievement, or a direct statement of fit
+
+STRUCTURE (body only — no header/address block, just the letter text):
+Paragraph 1 (hook + why this role): Lead with something specific and real. What caught your eye about this role or company? Connect it directly to something concrete in your background.
+Paragraph 2 (what you bring): Two or three specific things from the resume that directly answer what the JD is asking for. Quantify where possible. Make it feel inevitable that this person belongs in this role.
+Paragraph 3 (close): Confident, brief, forward-looking. No begging, no "I hope to hear from you". Something that leaves them wanting to pick up the phone.
+Sign-off: "Warmly," then the name, no blank line between them.
+
+Candidate name: ${settings.name || "the applicant"}
+Resume highlights: ${results.tailoredResume.slice(0, 1500)}
 Company: ${company}
 Role: ${role}
-Job Description: ${jobDescription}`}],
+Job Description: ${jobDescription.slice(0, 2000)}`}],
     null, 1500
   );
+  results.coverLetterBody = stripEmDashes(rawCoverLetter);
+  // Full cover letter text for preview/storage
+  results.coverLetter = results.coverLetterBody;
 
   // 6. Save resume to Drive (copy base resume to preserve formatting)
   if (settings.resumeFolderId) {
-    onStatus("Saving tailored resume to Google Drive…");
+    onStatus("Saving tailored resume to Google Drive\u2026");
     try {
       const docName = `${company}_${role}_Resume`.replace(/\s+/g, "_");
       const baseDocId = extractDocId(settings.baseResumeUrl);
@@ -344,15 +371,25 @@ Job Description: ${jobDescription}`}],
     } catch (e) { console.warn("Resume save failed:", e.message); }
   }
 
-  // 7. Save cover letter to Drive
+  // 7. Save cover letter to Drive with professional formatting
   if (settings.clFolderId) {
-    onStatus("Saving cover letter to Google Drive…");
+    onStatus("Saving cover letter to Google Drive\u2026");
     try {
       const docName = `${company}_${role}_CoverLetter`.replace(/\s+/g, "_");
-      const r = await driveAction("createDoc", {
+      const r = await driveAction("createCoverLetterDoc", {
         title: docName,
-        content: results.coverLetter,
         folderId: settings.clFolderId,
+        coverLetterData: {
+          senderName:     settings.name     || "",
+          senderLocation: settings.location || "",
+          senderPhone:    settings.phone    || "",
+          senderEmail:    settings.email    || "",
+          senderLinkedin: settings.linkedin || "",
+          senderWebsite:  settings.website  || "",
+          company,
+          role,
+          body: results.coverLetterBody,
+        },
       });
       results.clDocUrl = r.url;
       results.clDocId  = r.docId;
