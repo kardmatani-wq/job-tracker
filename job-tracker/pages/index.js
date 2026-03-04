@@ -214,18 +214,8 @@ function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDis
       {/* Personal details */}
       <div style={{ ...s.card, padding:24, marginBottom:24 }}>
         <h3 style={{ fontFamily:"'Fraunces',serif", fontSize:17, color:"#111827", marginBottom:6 }}>Your Details</h3>
-        <p style={{ fontSize:13, color:"#6B7280", marginBottom:18 }}>Used to personalise AI-generated cover letters.</p>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0 16px" }}>
-          <Inp label="Your Name" value={local.name || ""} onChange={e => set("name", e.target.value)} placeholder="Jane Smith" />
-          <Inp label="Target Role / Industry" value={local.targetRole || ""} onChange={e => set("targetRole", e.target.value)} placeholder="Product Manager, Tech" />
-        </div>
-        <Txt label="Brief Bio (for cover letters)"
-          value={local.bio || ""}
-          onChange={e => set("bio", e.target.value)}
-          placeholder="3–4 sentences about your background, strengths, and what you bring to roles…"
-          style={{ minHeight:110 }}
-        />
-      </div>
+        <p style={{ fontSize:13, color:"#6B7280", marginBottom:18 }}>Your name is used to sign cover letters.</p>
+              <Inp label="Your Name" value={local.name || ""} onChange={e => set("name", e.target.value)} placeholder="Jane Smith" />      </div>
 
       <Btn onClick={() => onChange(local)} variant="primary">Save Settings</Btn>
     </div>
@@ -305,7 +295,7 @@ Guidelines:
 - Sign off with the candidate's name
 
 Candidate: ${settings.name || "the applicant"}
-Background: ${settings.bio || ""}
+Resume: ${results.tailoredResume.slice(0, 1500)}
 Company: ${company}
 Role: ${role}
 Job Description: ${jobDescription}` }],
@@ -362,11 +352,17 @@ function AddAppModal({ settings, onSave, onClose }) {
     if (!form.jobUrl) return;
     setScraping(true);
     try {
-      const text = await callClaude(
-        [{ role:"user", content:`Visit this URL and extract the complete job description text. Return only the job description, nothing else: ${form.jobUrl}` }],
-        "You are a helpful assistant. Extract job description text from URLs.", 1500
-      );
-      set("jobDescription", text);
+      const res = await fetch("/api/fetch-jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: form.jobUrl }),
+      });
+      const data = await res.json();
+      if (data.text && data.text.length > 50) {
+        set("jobDescription", data.text);
+      } else {
+        set("jobDescription", data.error || "Could not fetch — please paste the job description manually.");
+      }
     } catch {
       set("jobDescription", "Could not fetch — please paste the job description manually.");
     }
@@ -823,7 +819,7 @@ export default function JobTracker() {
   const { data: session } = useSession();
 
   const [apps, setApps] = useState([]);
-  const [settings, setSettings] = useState({ baseResumeUrl:"", resumeFolderId:"", clFolderId:"", name:"", bio:"", targetRole:"" });
+  const [settings, setSettings] = useState({ baseResumeUrl:"", resumeFolderId:"", clFolderId:"", name:"",  });
 
   // Load from localStorage on mount
   useEffect(() => {
