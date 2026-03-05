@@ -296,22 +296,14 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
   if (baseResumeContent) {
     try {
       const changesText = await callClaude(
-        [{ role:"user", content:`You are a resume editor. Compare the BASE RESUME with the TAILORED RESUME and list the specific changes made. CRITICAL: Return ONLY a valid JSON array. Start your response with [ and end with ]. No text before or after.
-
-Format your response as a JSON array of change objects. Each object should have:
-- "section": which section was changed (e.g. "Summary", "Experience – Company Name", "Skills", "Education")
-- "type": one of "added", "removed", "reworded", "reordered"
-- "description": a concise 1-sentence description of the specific change
-
-Return ONLY valid JSON array, no markdown, no preamble. Example:
-[{"section":"Summary","type":"reworded","description":"Emphasised data-driven decision making to align with the JD."},{"section":"Skills","type":"added","description":"Added React and TypeScript to match required technical skills."}]
+        [{ role:"user", content:`Compare BASE RESUME and TAILORED RESUME. Return ONLY a JSON array, nothing else. Each item must have: "section" (e.g. "Summary","Skills","Experience - Company"), "type" (added/removed/reworded/reordered), "description" (one sentence). Example: [{"section":"Summary","type":"reworded","description":"Added project management focus."}]
 
 BASE RESUME:
-${baseResumeContent.slice(0, 2500)}
+${baseResumeContent.slice(0, 2000)}
 
 TAILORED RESUME:
-${results.tailoredResume.slice(0, 2500)}`}],
-        null, 1200
+${results.tailoredResume.slice(0, 2000)}`}],
+        null, 2000
       );
       let parsed = changesText.replace(/```json|```/g, "").trim(); const arrMatch = parsed.match(/\[[\s\S]*\]/); if (arrMatch) parsed = arrMatch[0]; results.resumeChanges = JSON.parse(parsed);
     } catch {
@@ -451,7 +443,7 @@ For salary, search the entire posting for any compensation mention: base pay, an
 
 JOB POSTING:
 ${data.text.slice(0, 5000)}`}],
-            null, 200
+            null, 400
           );
           const extracted = JSON.parse(extractText.replace(/```json|```/g, "").trim());
           setForm(f => ({
