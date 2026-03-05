@@ -66,28 +66,41 @@ export default async function handler(req, res) {
 
     // ── Copy base resume + replace content ────────────────────────────────
     if (action === "copyAndTailorDoc") {
-      const copyRes = await drive.files.copy({
-        fileId: sourceDocId,
-        requestBody: { name: title, parents: folderId ? [folderId] : [] },
-        fields: "id,webViewLink",
-      });
-      const newDocId = copyRes.data.id;
-      const url = copyRes.data.webViewLink;
+        // Try to copy the source doc; fall back to creating a fresh Google Doc
+              // (copy fails if source is a .docx upload rather than a native Google Doc)
+              let newDocId, url;
+              try {
+                          const copyRes = await drive.files.copy({
+                                        fileId: sourceDocId,
+                                        requestBody: { name: title, parents: folderId ? [folderId] : [] },
+                                        fields: "id,webViewLink",
+                          });
+                          newDocId = copyRes.data.id;
+                          url = copyRes.data.webViewLink;
+              } catch (copyErr) {
+                          // Source is not a native Google Doc (e.g. .docx) — create a fresh one
+                          const createRes = await drive.files.create({
+                                        requestBody: { name: title, mimeType: "application/vnd.google-apps.document", parents: folderId ? [folderId] : [] },
+                                        fields: "id,webViewLink",
+                          });
+                          newDocId = createRes.data.id;
+                          url = createRes.data.webViewLink;
+              }
 
-      const docLength = await getDocLength(docs, newDocId);
-      const requests = [];
-      if (docLength > 2) {
-        requests.push({ deleteContentRange: { range: { startIndex: 1, endIndex: docLength - 1 } } });
-      }
-      if (content && content.trim()) {
-        requests.push({ insertText: { location: { index: 1 }, text: content.trim() } });
-      }
-      if (requests.length > 0) {
-        await docs.documents.batchUpdate({ documentId: newDocId, requestBody: { requests } });
-      }
-      return res.status(200).json({ docId: newDocId, url });
+              const docLength = await getDocLength(docs, newDocId);
+              const requests = [];
+              if (docLength > 2) {
+                          requests.push({ deleteContentRange: { range: { startIndex: 1, endIndex: docLength - 1 } } });
+              }
+              if (content && content.trim()) {
+                          requests.push({ insertText: { location: { index: 1 }, text: content.trim() } });
+              }
+              if (requests.length > 0) {
+                          await docs.documents.batchUpdate({ documentId: newDocId, requestBody: { requests } });
+              }
+              return res.status(200).json({ docId: newDocId, url });
     }
-
+    
     // ── Create a plain text doc (resume fallback / generic) ───────────────
     if (action === "createDoc") {
       const createRes = await drive.files.create({
@@ -202,9 +215,9 @@ export default async function handler(req, res) {
               bold: lr.bold,
               italic: lr.italic || false,
               fontSize: { magnitude: lr.fontSize, unit: "PT" },
-              fontFamily: "Garamond",
+                                      weightedFontFamily: { fontFamily: "Garamond", weight: 400 },
             },
-            fields: "bold,italic,fontSize,fontFamily",
+                      fields: "bold,italic,fontSize,weightedFontFamily",
           },
         });
       }
