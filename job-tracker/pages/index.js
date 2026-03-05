@@ -11,7 +11,7 @@ const STAGE_COLORS = {
   "Final Round":  { bg:"#FCE7F3", text:"#9D174D", dot:"#EC4899" },
   "Offer":        { bg:"#D1FAE5", text:"#065F46", dot:"#10B981" },
   "Rejected":     { bg:"#F3F4F6", text:"#6B7280", dot:"#9CA3AF" },
-};
+}
 const CHECKLIST_ITEMS = [
   "Job URL / JD saved",
   "Resume tailored",
@@ -291,27 +291,44 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
     results.missingKeywords = json.missing || [];
   } catch { /* score is optional */ }
 
-  // 4. Resume change summary
-  onStatus("Summarising resume changes\u2026");
-  if (baseResumeContent) {
-    try {
-      const changesText = await callClaude(
-        [{ role:"user", content:`Compare BASE RESUME and TAILORED RESUME. Return ONLY a JSON array, nothing else. Each item must have: "section" (e.g. "Summary","Skills","Experience - Company"), "type" (added/removed/reworded/reordered), "description" (one sentence). Example: [{"section":"Summary","type":"reworded","description":"Added project management focus."}]
+    // 4. Resume change summary
+      onStatus("Summarising resume changes\u2026");
+      if (baseResumeContent) {
+              try {
+                        const changesText = await callClaude(
+                                    [{ role:"user", content:`Compare BASE RESUME and TAILORED RESUME. List the specific changes made. Return ONLY a valid JSON array, no markdown, no preamble, no explanation. Each object needs exactly these keys: "section" (string), "type" (one of: added/removed/reworded/reordered), "description" (one sentence string). Aim for 3-6 changes.
 
-BASE RESUME:
-${baseResumeContent.slice(0, 2000)}
+                                    Example output:
+                                    [{"section":"Summary","type":"reworded","description":"Reframed opening to emphasise project management leadership."},{"section":"Skills","type":"added","description":"Added coalition building and civil rights advocacy keywords."}]
 
-TAILORED RESUME:
-${results.tailoredResume.slice(0, 2000)}`}],
-        null, 2000
-      );
-      let parsed = changesText.replace(/```json|```/g, "").trim(); const arrMatch = parsed.match(/\[[\s\S]*\]/); if (arrMatch) parsed = arrMatch[0]; results.resumeChanges = JSON.parse(parsed);
-    } catch (changesErr) {
-        console.error("CHANGES_ERR:", changesErr && changesErr.message);
-      results.resumeChanges = [];
-    }
-  }
+                                    BASE RESUME:
+                                    ${baseResumeContent.slice(0, 3000)}
 
+                                    TAILORED RESUME:
+                                    ${results.tailoredResume.slice(0, 3000)}`}],
+                                    null, 1000
+                                  );
+                        // Robust JSON extraction: try multiple strategies
+                        let parsed = changesText
+                          .replace(/^```json\s*/i, "").replace(/^```\s*/i, "")
+                          .replace(/```\s*$/i, "").trim();
+                        // Strategy 1: find first [ ... ] block
+                        const arrMatch = parsed.match(/(\[[\s\S]*\])/);
+                        if (arrMatch) parsed = arrMatch[1];
+                        // Strategy 2: if still starts with {, wrap in array
+                        if (parsed.startsWith("{")) parsed = "[" + parsed + "]";
+                        const changes = JSON.parse(parsed);
+                        if (Array.isArray(changes) && changes.length > 0) {
+                                    results.resumeChanges = changes;
+                        } else {
+                                    results.resumeChanges = [];
+                        }
+              } catch (changesErr) {
+                        console.error("CHANGES_ERR:", changesErr && changesErr.message);
+                        results.resumeChanges = [];
+              }
+      }
+  
   // 5. Cover letter — human, engaging, professionally formatted
   onStatus("Drafting your cover letter\u2026");
 
