@@ -270,7 +270,7 @@ ${jobDescription}
 
 COMPANY: ${company}
 ROLE: ${role}`}],
-    null, 2000
+    null, 4000
   );
   results.tailoredResume = stripEmDashes(rawResume);
 
