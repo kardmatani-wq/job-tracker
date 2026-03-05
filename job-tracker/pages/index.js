@@ -300,7 +300,7 @@ TAILORED RESUME:
 ${results.tailoredResume.slice(0, 2500)}`}],
         null, 800
       );
-      let parsed = changesText.replace(/```json|```/g, "").trim(); const arrMatch = parsed.match(/[\s\S]*\]/); if (arrMatch) parsed = arrMatch[0]; results.resumeChanges = JSON.parse(parsed);
+      let parsed = changesText.replace(/```json|```/g, "").trim(); const arrMatch = parsed.match(/\[[\s\S]*\]/); if (arrMatch) parsed = arrMatch[0]; results.resumeChanges = JSON.parse(parsed);
     } catch {
       results.resumeChanges = [];
     }
@@ -331,6 +331,8 @@ STRUCTURE (body only — no header/address block, just the letter text):
 Paragraph 1 (hook + why this role): Lead with something specific and real. What caught your eye about this role or company? Connect it directly to something concrete in your background.
 Paragraph 2 (what you bring): Two or three specific things from the resume that directly answer what the JD is asking for. Quantify where possible. Make it feel inevitable that this person belongs in this role.
 Paragraph 3 (close): Confident, brief, forward-looking. No begging, no "I hope to hear from you". Something that leaves them wanting to pick up the phone.
+
+IMPORTANT: Output ONLY the 3 body paragraphs. Do NOT include your name, any closing, sign-off, or "Warmly" - those are added separately. End your output after the final sentence of paragraph 3.
 
 Candidate name: ${settings.name || "the applicant"}
 Resume highlights: ${results.tailoredResume.slice(0, 1500)}
@@ -387,6 +389,7 @@ Job Description: ${jobDescription.slice(0, 2000)}`}],
           company,
           role,
           body: results.coverLetterBody,
+          date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
         },
       });
       results.clDocUrl = r.url;
@@ -431,7 +434,7 @@ function AddAppModal({ settings, onSave, onClose }) {
 {"company": "Acme Corp", "role": "Senior Product Manager", "salary": "$120k–$150k"}
 
 If a field is not found, use an empty string "".
-For salary, include the full range or value as written. If not mentioned, use "".
+For salary, look for any mention of annual salary, hourly rate, compensation range, or pay (e.g. "$80,000", "$123,360", "up to $90k", "$45/hr"). Include the full value as written. If not found, use "".
 
 JOB POSTING:
 ${data.text.slice(0, 3000)}`}],
@@ -580,7 +583,7 @@ ${data.text.slice(0, 3000)}`}],
         <Inp label="Role *" value={form.role} onChange={e => set("role", e.target.value)} placeholder="Product Manager" />
         <Inp label="Applied Date" type="date" value={form.appliedDate} onChange={e => set("appliedDate", e.target.value)} />
         <Inp label="Follow-up Date" type="date" value={form.followUpDate} onChange={e => set("followUpDate", e.target.value)} />
-        <Inp label="Salary Range" value={form.salary} onChange={e => set("salary", e.target.value)} placeholder="$120k–$150k" />
+        <Inp label="Salary/Salary Range" value={form.salary} onChange={e => set("salary", e.target.value)} placeholder="$120k–$150k" />
         <Sel label="Status" value={form.status} onChange={e => set("status", e.target.value)} options={STAGES} />
       </div>
       <Field label="Job Posting URL" hint="Paste the URL and click Fetch — we'll extract the JD and auto-fill company, role & salary when available">
