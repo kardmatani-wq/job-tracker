@@ -293,21 +293,22 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
 
     // 4. Resume change summary
       onStatus("Summarising resume changes\u2026");
-      if (baseResumeContent) {
+      
               try {
                         const changesText = await callClaude(
-                                    [{ role:"user", content:`Compare BASE RESUME and TAILORED RESUME. List the specific changes made. Return ONLY a valid JSON array, no markdown, no preamble, no explanation. Each object needs exactly these keys: "section" (string), "type" (one of: added/removed/reworded/reordered), "description" (one sentence string). Aim for 3-6 changes.
+                                              [{ role:"user", content:`Analyse this tailored resume and list the key changes that were likely made to target this specific job. Return ONLY a valid JSON array, no markdown, no explanation. Each object needs exactly these keys: "section" (string like "Summary","Skills","Experience"), "type" (one of: added/removed/reworded/reordered), "description" (one clear sentence). Aim for 4-6 specific, concrete changes.
 
-                                    Example output:
-                                    [{"section":"Summary","type":"reworded","description":"Reframed opening to emphasise project management leadership."},{"section":"Skills","type":"added","description":"Added coalition building and civil rights advocacy keywords."}]
+                                              Example:
+                                              [{"section":"Summary","type":"reworded","description":"Reframed opening to emphasise civil rights and advocacy leadership."},{"section":"Skills","type":"added","description":"Added ACLU-specific keywords: civil liberties, voting rights, reproductive freedom."},{"section":"Experience","type":"reworded","description":"Strengthened bullet points with coalition building and organizing metrics."}]
 
-                                    BASE RESUME:
-                                    ${baseResumeContent.slice(0, 3000)}
+                                              ${baseResumeContent ? "BASE RESUME (original):\n" + baseResumeContent.slice(0, 2500) + "\n\n" : ""}TAILORED RESUME:
+                                              ${results.tailoredResume.slice(0, 3000)}
 
-                                    TAILORED RESUME:
-                                    ${results.tailoredResume.slice(0, 3000)}`}],
+                                              JOB DESCRIPTION (for context):
+                                              ${jobDescription.slice(0, 1000)}`}],
                                     null, 1000
                                   );
+                
                         // Robust JSON extraction: try multiple strategies
                         let parsed = changesText
                           .replace(/^```json\s*/i, "").replace(/^```\s*/i, "")
@@ -327,7 +328,7 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
                         console.error("CHANGES_ERR:", changesErr && changesErr.message);
                         results.resumeChanges = [];
               }
-      }
+
   
   // 5. Cover letter — human, engaging, professionally formatted
   onStatus("Drafting your cover letter\u2026");
