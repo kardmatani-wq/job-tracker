@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       // coverLetterData: { senderName, senderLocation, senderPhone, senderEmail,
       //                    senderLinkedin, senderWebsite, company, role, body }
       const d = coverLetterData || {};
-      const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+      const today = d.date || new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
       // Build the full text with precise line structure
       // We'll track character positions for formatting
