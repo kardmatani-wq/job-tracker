@@ -215,6 +215,19 @@ function stripEmDashes(text) {
 }
 
 // ─── AI Pipeline ────────────────────────────────────────────────────────────
+function stripCoverLetterSignOff(text, senderName) {
+  if (!text || !senderName) return text;
+  let t = text.trimEnd();
+  const esc = senderName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  [
+    new RegExp("\\n\\n[A-Z][a-z]+,\\n" + esc + "\\s*$"),
+    new RegExp("\\n[A-Z][a-z]+,\\n" + esc + "\\s*$"),
+    new RegExp("\\n\\n" + esc + "\\s*$"),
+    new RegExp("\\n" + esc + "\\s*$"),
+  ].forEach(pat => { t = t.replace(pat, ""); });
+  return t.trimEnd();
+}
+
 async function runAIPipeline({ jobDescription, company, role, settings, onStatus }) {
   const results = {
     tailoredResume:"", coverLetter:"", coverLetterBody:"", keywordScore:null,
@@ -283,7 +296,7 @@ JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
   if (baseResumeContent) {
     try {
       const changesText = await callClaude(
-        [{ role:"user", content:`You are a resume editor. Compare the BASE RESUME with the TAILORED RESUME and list the specific changes made.
+        [{ role:"user", content:`You are a resume editor. Compare the BASE RESUME with the TAILORED RESUME and list the specific changes made. CRITICAL: Return ONLY a valid JSON array. Start your response with [ and end with ]. No text before or after.
 
 Format your response as a JSON array of change objects. Each object should have:
 - "section": which section was changed (e.g. "Summary", "Experience – Company Name", "Skills", "Education")
@@ -298,7 +311,7 @@ ${baseResumeContent.slice(0, 2500)}
 
 TAILORED RESUME:
 ${results.tailoredResume.slice(0, 2500)}`}],
-        null, 800
+        null, 1200
       );
       let parsed = changesText.replace(/```json|```/g, "").trim(); const arrMatch = parsed.match(/\[[\s\S]*\]/); if (arrMatch) parsed = arrMatch[0]; results.resumeChanges = JSON.parse(parsed);
     } catch {
@@ -341,7 +354,7 @@ Role: ${role}
 Job Description: ${jobDescription.slice(0, 2000)}`}],
     null, 1500
   );
-  results.coverLetterBody = stripEmDashes(rawCoverLetter);
+  results.coverLetterBody = stripCoverLetterSignOff(stripEmDashes(rawCoverLetter), settings.name);
   // Full cover letter text for preview/storage
   results.coverLetter = results.coverLetterBody;
 
@@ -389,7 +402,7 @@ Job Description: ${jobDescription.slice(0, 2000)}`}],
           company,
           role,
           body: results.coverLetterBody,
-          date: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+          date: (() => { const d = new Date(); const months = ["January","February","March","April","May","June","July","August","September","October","November","December"]; return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear(); })(),
         },
       });
       results.clDocUrl = r.url;
@@ -434,10 +447,10 @@ function AddAppModal({ settings, onSave, onClose }) {
 {"company": "Acme Corp", "role": "Senior Product Manager", "salary": "$120k–$150k"}
 
 If a field is not found, use an empty string "".
-For salary, look for any mention of annual salary, hourly rate, compensation range, or pay (e.g. "$80,000", "$123,360", "up to $90k", "$45/hr"). Include the full value as written. If not found, use "".
+For salary, search the entire posting for any compensation mention: base pay, annual salary, salary range, pay range, hourly rate, wage. Look for dollar amounts and ranges. Include the full value exactly as written. If not found, use "".
 
 JOB POSTING:
-${data.text.slice(0, 3000)}`}],
+${data.text.slice(0, 5000)}`}],
             null, 200
           );
           const extracted = JSON.parse(extractText.replace(/```json|```/g, "").trim());
@@ -837,7 +850,7 @@ function EditForm({ app, onSave, onClose }) {
         <Inp label="Role"        value={f.role}        onChange={e => set("role", e.target.value)} />
         <Inp label="Applied Date" type="date" value={f.appliedDate   || ""} onChange={e => set("appliedDate",   e.target.value)} />
         <Inp label="Follow-up Date" type="date" value={f.followUpDate || ""} onChange={e => set("followUpDate", e.target.value)} />
-        <Inp label="Salary"      value={f.salary       || ""} onChange={e => set("salary",    e.target.value)} placeholder="$120k–$150k" />
+        <Inp label="Salary/Salary Range" value={f.salary       || ""} onChange={e => set("salary",    e.target.value)} placeholder="$120k–$150k" />
         <Sel label="Status"      value={f.status}      onChange={e => set("status",    e.target.value)} options={STAGES} />
       </div>
       <Inp label="Resume Google Doc URL"      value={f.resumeLink      || ""} onChange={e => set("resumeLink",      e.target.value)} />
