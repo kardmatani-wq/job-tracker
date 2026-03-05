@@ -132,6 +132,10 @@ export default async function handler(req, res) {
       // ── Blank line before body ──
       lines.push({ text: "", bold: false, fontSize: 11 });
 
+      // ── Greeting ──
+      lines.push({ text: "Dear Hiring Manager,", bold: false, fontSize: 11 });
+      lines.push({ text: "", bold: false, fontSize: 11 });
+
       // ── Body paragraphs (split on double newlines or single newlines) ──
       const bodyParagraphs = (d.body || "").split(/\n\n+/).map(p => p.replace(/\n/g, " ").trim()).filter(Boolean);
       for (let i = 0; i < bodyParagraphs.length; i++) {
