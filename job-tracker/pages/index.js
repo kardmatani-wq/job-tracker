@@ -306,7 +306,8 @@ ${results.tailoredResume.slice(0, 2000)}`}],
         null, 2000
       );
       let parsed = changesText.replace(/```json|```/g, "").trim(); const arrMatch = parsed.match(/\[[\s\S]*\]/); if (arrMatch) parsed = arrMatch[0]; results.resumeChanges = JSON.parse(parsed);
-    } catch {
+    } catch (changesErr) {
+        console.error("CHANGES_ERR:", changesErr && changesErr.message);
       results.resumeChanges = [];
     }
   }
@@ -442,7 +443,7 @@ If a field is not found, use an empty string "".
 For salary, search the entire posting for any compensation mention: base pay, annual salary, salary range, pay range, hourly rate, wage. Look for dollar amounts and ranges. Include the full value exactly as written. If not found, use "".
 
 JOB POSTING:
-${data.text.slice(0, 5000)}`}],
+${data.text}`}],
             null, 400
           );
           const extracted = JSON.parse(extractText.replace(/```json|```/g, "").trim());
