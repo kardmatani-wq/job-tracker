@@ -202,223 +202,178 @@ function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDis
   );
 }
 
-// ─── Helpers: post-processing ──────────────────────────────────────────────
-// Strip em-dashes and replace with a human-readable alternative
+// ─── Helpers: post-processing ────────────────────────────────────────────
 function stripEmDashes(text) {
   if (!text) return text;
-  // Replace em-dash with comma+space, en-dash between words with a hyphen,
-  // and any remaining en-dashes with a hyphen-minus
   return text
-    .replace(/\u2014/g, ", ")   // em-dash → comma space
-    .replace(/\u2013/g, "-")    // en-dash → hyphen
-    .replace(/--/g, "-");        // double hyphen → single hyphen
+    .replace(/\u2014/g, ", ")
+    .replace(/\u2013/g, "-")
+    .replace(/--/g, "-");
 }
 
-// ─── AI Pipeline ────────────────────────────────────────────────────────────
 function stripCoverLetterSignOff(text, senderName) {
   if (!text || !senderName) return text;
   let t = text.trimEnd();
-  const esc = senderName.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const esc = senderName.trim().replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
   [
-    new RegExp("\\n\\n[A-Z][a-z]+,\\n" + esc + "\\s*$"),
-    new RegExp("\\n[A-Z][a-z]+,\\n" + esc + "\\s*$"),
-    new RegExp("\\n\\n" + esc + "\\s*$"),
-    new RegExp("\\n" + esc + "\\s*$"),
+    new RegExp("\\\\n\\\\n[A-Z][a-z]+,\\\\n" + esc + "\\\\s*$"),
+    new RegExp("\\\\n[A-Z][a-z]+,\\\\n" + esc + "\\\\s*$"),
+    new RegExp("\\\\n\\\\n" + esc + "\\\\s*$"),
+    new RegExp("\\\\n" + esc + "\\\\s*$"),
   ].forEach(pat => { t = t.replace(pat, ""); });
   return t.trimEnd();
 }
 
+// ─── AI Pipeline ──────────────────────────────────────────────────────
 async function runAIPipeline({ jobDescription, company, role, settings, onStatus }) {
   const results = {
-    tailoredResume:"", coverLetter:"", coverLetterBody:"", keywordScore:null,
-    matchedKeywords:[], missingKeywords:[], resumeChanges:[],
-    resumeDocUrl:"", clDocUrl:"", resumeDocId:"", clDocId:""
+    coverLetter:"", coverLetterBody:"",
+    keywordScore:null, matchedKeywords:[], missingKeywords:[],
+    resumeChanges:[], resumeDocUrl:"", clDocUrl:"", resumeDocId:"", clDocId:"",
+    replacements:[],
   };
 
-  // 1. Read base resume
-  onStatus("Reading your base resume from Google Drive\u2026");
-  let baseResumeContent = "";
+  // 1. Read base resume paragraphs from Google Drive
+  onStatus("Reading your base resume from Google Drive...");
+  let baseResumeText = "";
+  let baseParagraphs = [];
   const baseDocId = extractDocId(settings.baseResumeUrl);
   if (baseDocId) {
     try {
       const r = await driveAction("readDoc", { docId: baseDocId });
-      baseResumeContent = r.text;
+      baseResumeText = r.text || "";
+      const pr = await driveAction("readDocParagraphs", { docId: baseDocId });
+      baseParagraphs = pr.paragraphs || [];
     } catch (e) {
-      baseResumeContent = "";
       console.warn("Could not read base resume:", e.message);
     }
   }
 
-  // 2. Tailor resume
-  onStatus("Tailoring your resume to the job\u2026");
-  const rawResume = await callClaude(
-    [{ role:"user", content:`You are an expert resume writer. Produce a tailored version of this resume for the role below.
+  // 2. Generate replacement pairs via Claude
+  onStatus("Tailoring your resume to the job...");
+  let replacements = [];
+  try {
+    const claudePrompt = "You are an expert resume writer. Tailor a resume for a specific role by producing surgical text replacements that preserve the document's exact structure and formatting.\n\n"
+      + "You will be given the resume as a JSON array of paragraph strings (exactly as they appear in the document). For each paragraph you want to change, output a replacement pair.\n\n"
+      + "RULES:\n"
+      + "- Only change text content, never change structure or add/remove sections\n"
+      + "- Mirror keywords and phrases from the JD naturally\n"
+      + "- Do NOT invent experience or qualifications\n"
+      + "- Keep bullet points as bullet points, just update the text\n"
+      + "- NEVER use em-dashes or en-dashes\n"
+      + "- Return ONLY a valid JSON array of objects with exactly these keys: oldText and newText\n"
+      + "- oldText must be the EXACT string from the paragraphs array (copy it precisely)\n"
+      + "- newText is your improved version\n"
+      + "- Only include paragraphs that genuinely need changing\n"
+      + "- Aim for 8-15 targeted replacements\n\n"
+      + "RESUME PARAGRAPHS (JSON array):\n" + JSON.stringify(baseParagraphs) + "\n\n"
+      + "JOB DESCRIPTION:\n" + jobDescription + "\n\n"
+      + "COMPANY: " + company + "\nROLE: " + role + "\n\nReturn ONLY the JSON array, no markdown, no explanation.";
+    const rawReplacements = await callClaude([{ role:"user", content: claudePrompt }], null, 4000);
+    let parsed = rawReplacements.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    const arrMatch = parsed.match(/(\[[\s\S]*\])/);
+    if (arrMatch) parsed = arrMatch[1];
+    const arr = JSON.parse(parsed);
+    if (Array.isArray(arr)) {
+      replacements = arr
+        .filter(r => r.oldText && r.newText && r.oldText.trim() !== r.newText.trim())
+        .map(r => ({ oldText: r.oldText, newText: stripEmDashes(r.newText) }));
+    }
+  } catch (e) {
+    console.error("Replacements error:", e.message);
+  }
+  results.replacements = replacements;
 
-Rules:
-- Moderate edits: restructure bullets and reorder sections if it helps, but preserve the candidate's authentic voice
-- Mirror keywords and phrases from the JD naturally — don't stuff them awkwardly
-- Do NOT invent experience or qualifications
-- Keep the same overall structure and sections as the base resume
-- NEVER use em-dashes (—) or en-dashes (–). Use commas, colons, or rephrase instead
-- Return ONLY the resume text, no preamble or commentary
-
-BASE RESUME:
-${baseResumeContent || "No base resume provided — write a professional resume for a " + role + " candidate based on the job description."}
-
-JOB DESCRIPTION:
-${jobDescription}
-
-COMPANY: ${company}
-ROLE: ${role}`}],
-    null, 4000
-  );
-  results.tailoredResume = stripEmDashes(rawResume);
+  // Build tailored text for scoring and cover letter
+  let tailoredText = baseResumeText;
+  for (const r of replacements) {
+    if (r.oldText) tailoredText = tailoredText.split(r.oldText).join(r.newText);
+  }
 
   // 3. Keyword score
-  onStatus("Calculating keyword match score\u2026");
+  onStatus("Calculating keyword match score...");
   try {
-    const scoreText = await callClaude(
-      [{ role:"user", content:`Compare this resume to the job description. Return ONLY valid JSON (no markdown, no preamble):
-{"score": 78, "matched": ["keyword1","keyword2","keyword3"], "missing": ["keyword4","keyword5"]}
-
-RESUME: ${results.tailoredResume.slice(0, 2000)}
-JOB DESCRIPTION: ${jobDescription.slice(0, 1500)}`}],
-      null, 400
-    );
+    const scorePrompt = "Compare this resume to the job description. Return ONLY valid JSON (no markdown, no preamble):\n"
+      + "{\"score\": 78, \"matched\": [\"keyword1\",\"keyword2\"], \"missing\": [\"keyword3\"]}\n\n"
+      + "RESUME: " + tailoredText.slice(0, 2000) + "\n\nJOB DESCRIPTION: " + jobDescription.slice(0, 1500);
+    const scoreText = await callClaude([{ role:"user", content: scorePrompt }], null, 400);
     const json = JSON.parse(scoreText.replace(/```json|```/g, "").trim());
-    results.keywordScore    = json.score;
+    results.keywordScore = json.score;
     results.matchedKeywords = json.matched || [];
     results.missingKeywords = json.missing || [];
   } catch { /* score is optional */ }
 
-    // 4. Resume change summary
-      onStatus("Summarising resume changes\u2026");
-      
-              try {
-                        const changesText = await callClaude(
-                                              [{ role:"user", content:`Analyse this tailored resume and list the key changes that were likely made to target this specific job. Return ONLY a valid JSON array, no markdown, no explanation. Each object needs exactly these keys: "section" (string like "Summary","Skills","Experience"), "type" (one of: added/removed/reworded/reordered), "description" (one clear sentence). Aim for 4-6 specific, concrete changes.
+  // 4. Resume change summary
+  onStatus("Summarising resume changes...");
+  try {
+    const changesPrompt = "Based on these text replacements made to a resume, produce a brief human-readable summary.\n"
+      + "Return ONLY a valid JSON array (no markdown). Each object needs: \"section\" (string), \"type\" (added/reworded/reordered), \"description\" (one sentence). Aim for 4-6 items.\n\n"
+      + "REPLACEMENTS: " + JSON.stringify(replacements.slice(0, 8)) + "\nROLE: " + role + "\nCOMPANY: " + company;
+    const changesText = await callClaude([{ role:"user", content: changesPrompt }], null, 800);
+    let parsed = changesText.replace(/^```json\s*/i,"").replace(/^```\s*/i,"").replace(/```\s*$/i,"").trim();
+    const arrM = parsed.match(/(\[[\s\S]*\])/);
+    if (arrM) parsed = arrM[1];
+    if (parsed.startsWith("{")) parsed = "[" + parsed + "]";
+    const changes = JSON.parse(parsed);
+    if (Array.isArray(changes) && changes.length > 0) results.resumeChanges = changes;
+  } catch (e) { console.error("CHANGES_ERR:", e.message); }
 
-                                              Example:
-                                              [{"section":"Summary","type":"reworded","description":"Reframed opening to emphasise civil rights and advocacy leadership."},{"section":"Skills","type":"added","description":"Added ACLU-specific keywords: civil liberties, voting rights, reproductive freedom."},{"section":"Experience","type":"reworded","description":"Strengthened bullet points with coalition building and organizing metrics."}]
-
-                                              ${baseResumeContent ? "BASE RESUME (original):\n" + baseResumeContent.slice(0, 2500) + "\n\n" : ""}TAILORED RESUME:
-                                              ${results.tailoredResume.slice(0, 3000)}
-
-                                              JOB DESCRIPTION (for context):
-                                              ${jobDescription.slice(0, 1000)}`}],
-                                    null, 1000
-                                  );
-                
-                        // Robust JSON extraction: try multiple strategies
-                        let parsed = changesText
-                          .replace(/^```json\s*/i, "").replace(/^```\s*/i, "")
-                          .replace(/```\s*$/i, "").trim();
-                        // Strategy 1: find first [ ... ] block
-                        const arrMatch = parsed.match(/(\[[\s\S]*\])/);
-                        if (arrMatch) parsed = arrMatch[1];
-                        // Strategy 2: if still starts with {, wrap in array
-                        if (parsed.startsWith("{")) parsed = "[" + parsed + "]";
-                        const changes = JSON.parse(parsed);
-                        if (Array.isArray(changes) && changes.length > 0) {
-                                    results.resumeChanges = changes;
-                        } else {
-                                    results.resumeChanges = [];
-                        }
-              } catch (changesErr) {
-                        console.error("CHANGES_ERR:", changesErr && changesErr.message);
-                        results.resumeChanges = [];
-              }
-
-  
-  // 5. Cover letter — human, engaging, professionally formatted
-  onStatus("Drafting your cover letter\u2026");
-
-  const rawCoverLetter = await callClaude(
-    [{ role:"user", content:`You are writing a cover letter on behalf of a real job seeker. Your goal is to write something that sounds like a thoughtful, confident human being wrote it — not a template, not an AI, not a corporate robot.
-
-STRICT RULES (non-negotiable):
-- NEVER use em-dashes (—) or en-dashes (–). If you feel the urge to use one, use a comma, a period, or restructure the sentence
-- No hollow filler phrases: "I am writing to express my interest", "I am excited to apply", "I would love the opportunity", "I am passionate about", "I strongly believe"
-- No sycophantic openers. Don't start with compliments about the company
-- No corporate buzzwords: "leverage", "synergy", "dynamic", "passionate", "innovative", "collaborative"
-- Do not use bullet points
-- 3 focused paragraphs only
-
-VOICE & TONE:
-- Write like a smart, grounded person talking to another smart person
-- Be specific — name a real detail from the JD or the company that genuinely connects to the candidate's background
-- Show personality without being casual or over-familiar
-- Let the candidate's actual experience do the heavy lifting — no inflating or vague gestures at skills
-- The opening line should be a genuine hook: a specific observation, a concrete achievement, or a direct statement of fit
-
-STRUCTURE (body only — no header/address block, just the letter text):
-Paragraph 1 (hook + why this role): Lead with something specific and real. What caught your eye about this role or company? Connect it directly to something concrete in your background.
-Paragraph 2 (what you bring): Two or three specific things from the resume that directly answer what the JD is asking for. Quantify where possible. Make it feel inevitable that this person belongs in this role.
-Paragraph 3 (close): Confident, brief, forward-looking. No begging, no "I hope to hear from you". Something that leaves them wanting to pick up the phone.
-
-IMPORTANT: Output ONLY the 3 body paragraphs. Do NOT include your name, any closing, sign-off, or "Warmly" - those are added separately. End your output after the final sentence of paragraph 3.
-
-Candidate name: ${settings.name || "the applicant"}
-Resume highlights: ${results.tailoredResume.slice(0, 1500)}
-Company: ${company}
-Role: ${role}
-Job Description: ${jobDescription.slice(0, 2000)}`}],
-    null, 1500
-  );
-  results.coverLetterBody = stripCoverLetterSignOff(stripEmDashes(rawCoverLetter), settings.name);
-  // Full cover letter text for preview/storage
+  // 5. Cover letter
+  onStatus("Drafting your cover letter...");
+  const clPrompt = "Write a cover letter body (3 paragraphs only, no header/sign-off) for this candidate applying to this role.\n\n"
+    + "STRICT RULES: No em-dashes or en-dashes. No hollow filler phrases like 'I am writing to express my interest' or 'I am excited to apply'. No sycophantic openers. No corporate buzzwords. 3 focused paragraphs only.\n\n"
+    + "Paragraph 1: Specific hook connecting background to this role.\n"
+    + "Paragraph 2: 2-3 specific things from resume that answer what the JD asks for.\n"
+    + "Paragraph 3: Confident, brief close.\n\n"
+    + "OUTPUT ONLY the 3 body paragraphs. Do NOT include name, closing, or sign-off.\n\n"
+    + "Candidate: " + (settings.name || "the applicant") + "\n"
+    + "Resume: " + tailoredText.slice(0, 1500) + "\n"
+    + "Company: " + company + "\nRole: " + role + "\nJD: " + jobDescription.slice(0, 2000);
+  const rawCL = await callClaude([{ role:"user", content: clPrompt }], null, 1500);
+  results.coverLetterBody = stripCoverLetterSignOff(stripEmDashes(rawCL), settings.name);
   results.coverLetter = results.coverLetterBody;
 
-  // 6. Save resume to Drive (copy base resume to preserve formatting)
-  if (settings.resumeFolderId) {
-    onStatus("Saving tailored resume to Google Drive\u2026");
+  // 6. Save tailored resume to Drive using replaceAllText (preserves formatting)
+  if (settings.resumeFolderId && baseDocId && replacements.length > 0) {
+    onStatus("Saving tailored resume to Google Drive...");
     try {
-      const docName = `${company}_${role}_Resume`.replace(/\s+/g, "_");
-      const baseDocId = extractDocId(settings.baseResumeUrl);
-      let r;
-      if (baseDocId) {
-        r = await driveAction("copyAndTailorDoc", {
-          sourceDocId: baseDocId,
-          title: docName,
-          content: results.tailoredResume,
-          folderId: settings.resumeFolderId,
-        });
-      } else {
-        r = await driveAction("createDoc", {
-          title: docName,
-          content: results.tailoredResume,
-          folderId: settings.resumeFolderId,
-        });
-      }
+      const docName = (company + "_" + role + "_Resume").replace(/\s+/g, "_");
+      const r = await driveAction("copyAndTailorDoc", {
+        sourceDocId: baseDocId,
+        title: docName,
+        folderId: settings.resumeFolderId,
+        replacements: results.replacements,
+      });
       results.resumeDocUrl = r.url;
-      results.resumeDocId  = r.docId;
+      results.resumeDocId = r.docId;
     } catch (e) { console.warn("Resume save failed:", e.message); }
   }
 
-  // 7. Save cover letter to Drive with professional formatting
+  // 7. Save cover letter to Drive
   if (settings.clFolderId) {
-    onStatus("Saving cover letter to Google Drive\u2026");
+    onStatus("Saving cover letter to Google Drive...");
     try {
-      const docName = `${company}_${role}_CoverLetter`.replace(/\s+/g, "_");
+      const docName = (company + "_" + role + "_CoverLetter").replace(/\s+/g, "_");
+      const clMonths = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      const clDate = new Date();
       const r = await driveAction("createCoverLetterDoc", {
         title: docName,
         folderId: settings.clFolderId,
         coverLetterData: {
-          senderName:     settings.name     || "",
+          senderName: settings.name || "",
           senderLocation: settings.location || "",
-          senderPhone:    settings.phone    || "",
-          senderEmail:    settings.email    || "",
+          senderPhone: settings.phone || "",
+          senderEmail: settings.email || "",
           senderLinkedin: settings.linkedin || "",
-          senderWebsite:  settings.website  || "",
-          company,
-          role,
+          senderWebsite: settings.website || "",
+          company, role,
           body: results.coverLetterBody,
-          date: (() => { const d = new Date(); const months = ["January","February","March","April","May","June","July","August","September","October","November","December"]; return months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear(); })(),
+          date: clMonths[clDate.getMonth()] + " " + clDate.getDate() + ", " + clDate.getFullYear(),
         },
       });
       results.clDocUrl = r.url;
-      results.clDocId  = r.docId;
-    } catch (e) { console.warn("Cover letter save failed:", e.message); }
+      results.clDocId = r.docId;
+    } catch (e) { console.warn("CL save failed:", e.message); }
   }
 
   return results;
