@@ -922,7 +922,18 @@ export default function JobTracker() {
     try {
       const savedApps     = localStorage.getItem("jt_apps");
       const savedSettings = localStorage.getItem("jt_settings");
-      if (savedApps)     setApps(JSON.parse(savedApps));
+      if (savedApps) {
+        const loaded = JSON.parse(savedApps);
+        // Fix duplicate IDs from previous bug
+        const seen = new Set();
+        const fixed = loaded.map(a => {
+          if (a.id && !seen.has(a.id)) { seen.add(a.id); return a; }
+          const newId = Date.now() + Math.random();
+          seen.add(newId);
+          return { ...a, id: newId };
+        });
+        setApps(fixed);
+      }
       if (savedSettings) setSettings(JSON.parse(savedSettings));
     } catch {}
   }, []);
@@ -939,7 +950,6 @@ export default function JobTracker() {
   const [chatInfo, setChatInfo]     = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [search, setSearch]         = useState("");
-  const nextId = useRef(Math.max(0, ...apps.map(a => a.id || 0)) + 1);
 
   function saveSettings(s) {
     setSettings(s);
@@ -951,7 +961,7 @@ export default function JobTracker() {
     if (data.id) {
       setApps(prev => prev.map(a => a.id === data.id ? data : a));
     } else {
-      setApps(prev => [...prev, { ...data, id: nextId.current++ }]);
+      setApps(prev => [...prev, { ...data, id: Date.now() }]);
     }
   }
 
@@ -1076,7 +1086,34 @@ export default function JobTracker() {
                             onMouseLeave={e => e.currentTarget.style.background = od ? "#FFFBF0" : "transparent"}>
                             <td style={{ padding:"13px 16px", fontWeight:700, fontSize:14, color:"#111827" }} onClick={() => setDetailApp(app)}>{app.company}</td>
                             <td style={{ padding:"13px 16px", fontSize:13, color:"#6B7280" }} onClick={() => setDetailApp(app)}>{app.role}</td>
-                            <td style={{ padding:"13px 16px" }} onClick={() => setDetailApp(app)}><Badge status={app.status} /></td>
+                            <td style={{ padding:"8px 16px" }} onClick={e => e.stopPropagation()}>
+                              <select
+                                value={app.status}
+                                onChange={e => { e.stopPropagation(); saveApp({ ...app, status: e.target.value }); }}
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  fontFamily: "inherit",
+                                  border: "1.5px solid " + (STAGE_COLORS[app.status]?.dot || "#E5E7EB"),
+                                  borderRadius: 20,
+                                  background: STAGE_COLORS[app.status]?.bg || "#F3F4F6",
+                                  color: STAGE_COLORS[app.status]?.text || "#374151",
+                                  padding: "4px 10px",
+                                  cursor: "pointer",
+                                  outline: "none",
+                                  appearance: "none",
+                                  WebkitAppearance: "none",
+                                  paddingRight: 22,
+                                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B7280'/%3E%3C/svg%3E")`,
+                                  backgroundRepeat: "no-repeat",
+                                  backgroundPosition: "right 7px center",
+                                  backgroundSize: "8px",
+                                  minWidth: 110,
+                                }}
+                              >
+                                {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </td>
                             <td style={{ padding:"13px 16px" }} onClick={() => setDetailApp(app)}><ScorePill score={app.keywordScore} /></td>
                             <td style={{ padding:"13px 16px", fontSize:12, color:"#9CA3AF" }} onClick={() => setDetailApp(app)}>{app.appliedDate || "—"}</td>
                             <td style={{ padding:"13px 16px", fontSize:12, color: od ? "#D97706" : "#9CA3AF", fontWeight: od ? 700 : 400 }} onClick={() => setDetailApp(app)}>
