@@ -924,22 +924,32 @@ export default function JobTracker() {
       const savedSettings = localStorage.getItem("jt_settings");
       if (savedApps) {
         const loaded = JSON.parse(savedApps);
-        // Fix duplicate IDs from previous bug
-        const seen = new Set();
-        const fixed = loaded.map(a => {
-          if (a.id && !seen.has(a.id)) { seen.add(a.id); return a; }
-          const newId = Date.now() + Math.random();
-          seen.add(newId);
-          return { ...a, id: newId };
-        });
+        // Fix duplicate IDs and remove content duplicates from previous bug
+        const seenIds = new Set();
+        const seenContent = new Set();
+        const fixed = [];
+        for (const a of loaded) {
+          let app = a;
+          if (!app.id || seenIds.has(app.id)) {
+            app = { ...app, id: Date.now() + Math.random() };
+          }
+          seenIds.add(app.id);
+          const contentKey = `${app.company}|${app.role}|${app.appliedDate}`;
+          if (!seenContent.has(contentKey)) {
+            seenContent.add(contentKey);
+            fixed.push(app);
+          }
+        }
         setApps(fixed);
       }
       if (savedSettings) setSettings(JSON.parse(savedSettings));
     } catch {}
   }, []);
 
-  // Persist apps on change
+  // Persist apps on change (skip initial mount to avoid overwriting localStorage)
+  const hasLoaded = useRef(false);
   useEffect(() => {
+    if (!hasLoaded.current) { hasLoaded.current = true; return; }
     try { localStorage.setItem("jt_apps", JSON.stringify(apps)); } catch {}
   }, [apps]);
 
