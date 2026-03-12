@@ -322,13 +322,13 @@ async function runAIPipeline({ jobDescription, company, role, settings, onStatus
   onStatus("Drafting your cover letter...");
   const clPrompt = "Write a cover letter body (3 paragraphs only, no header/sign-off) for this candidate applying to this role.\n\n"
     + "STRICT RULES: No em-dashes or en-dashes. No hollow filler phrases like 'I am writing to express my interest' or 'I am excited to apply'. No sycophantic openers. No corporate buzzwords. 3 focused paragraphs only.\n\n"
-    + "Paragraph 1: Specific hook connecting background to this role.\n"
-    + "Paragraph 2: 2-3 specific things from resume that answer what the JD asks for.\n"
-    + "Paragraph 3: Confident, brief close.\n\n"
+    + "Paragraph 1: Open with a sharp, specific hook that names the role and ties the candidate's most relevant experience or career throughline directly to what this company or role needs. Reference something concrete from their background, not a generic claim.\n"
+    + "Paragraph 2: Draw on 3-4 specific, concrete examples pulled from across the candidate's full career history (not just the most recent role) that directly address the key requirements in the JD. For each example, name the role or context it came from and connect it explicitly to what the JD is asking for. Be specific: mention real skills, initiatives, outcomes, or scope of work. Do not speak in generalities.\n"
+    + "Paragraph 3: Confident, brief close that reinforces fit and invites next steps. One or two sentences only.\n\n"
     + "OUTPUT ONLY the 3 body paragraphs. Do NOT include name, closing, or sign-off.\n\n"
     + "Candidate: " + (settings.name || "the applicant") + "\n"
-    + "Resume: " + tailoredText.slice(0, 1500) + "\n"
-    + "Company: " + company + "\nRole: " + role + "\nJD: " + jobDescription.slice(0, 2000);
+    + "Full Resume (mine the full history for relevant experience):\n" + tailoredText.slice(0, 3500) + "\n"
+    + "Company: " + company + "\nRole: " + role + "\nJD (pay close attention to required skills and responsibilities):\n" + jobDescription.slice(0, 2500);
   const rawCL = await callClaude([{ role:"user", content: clPrompt }], null, 1500);
   results.coverLetterBody = stripCoverLetterSignOff(stripEmDashes(rawCL), settings.name);
   results.coverLetter = results.coverLetterBody;
