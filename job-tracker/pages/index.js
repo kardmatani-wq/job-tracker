@@ -7,12 +7,12 @@ const STAGES = ["Applied","Phone Screen","Interview","Final Round","Offer","Reje
 const STAGE_COLORS = {
   "Applied":      { bg:"#EEF2FF", text:"#4338CA", dot:"#6366F1" },
   "Phone Screen": { bg:"#FEF9C3", text:"#854D0E", dot:"#EAB308" },
-  "Interview":    { bg:"#DCFCE7", text:"#166534", dot:"#22C55E" },
+  "Interview":    { bg:"#DCFCE7", text:"#166534", dot:"#22C5E" },
   "Final Round":  { bg:"#FCE7F3", text:"#9D174D", dot:"#EC4899" },
   "Offer":        { bg:"#D1FAE5", text:"#065F46", dot:"#10B981" },
   "Rejected":     { bg:"#F3F4F6", text:"#6B7280", dot:"#9CA3AF" },
 }
-const CHECKLIST_ITEMS = [
+const CHECKLIST_ITEMS = 
   "Job URL / JD saved",
   "Resume tailored",
   "Cover letter written",
@@ -324,15 +324,17 @@ async function runAIPipeline({ jobDescription, company, role, settings, onStatus
   // 5. Cover letter
   onStatus("Drafting your cover letter...");
   const clPrompt = "Write a cover letter body (3 paragraphs, no header/sign-off) for this candidate applying to this role.\n\n" +
-    "PREPARATION: Before writing, read the entire JD and identify the 3-4 most critical requirements: the specific skills, tools, responsibilities, or qualities the employer explicitly calls out. The letter MUST directly and specifically address each of these using concrete examples from the candidate's actual experience. Do not address them generically.\n\n" +
-    "STRICT RULES: No em-dashes or en-dashes. No hollow filler phrases like 'I am writing to express my interest' or 'I am excited to apply'. No sycophantic openers. No corporate buzzwords. No vague claims like 'simplifying complex processes' or 'driving results' unless immediately tied to a specific named example. 3 focused paragraphs only.\n\n" +
-    "Paragraph 1: Open with a hook that names the role, then immediately draw a direct, specific connection between the candidate's most relevant background and the JD's most critical requirement. Reference a real part of their experience, not a generic claim.\n" +
-    "Paragraph 2: Draw on 3-4 concrete examples from across the candidate's full career that directly map to the key requirements in the JD. For each example: (1) name the role or context it came from, (2) describe the specific skill or action, (3) explicitly state how it addresses what the JD is asking for. A hiring manager should be able to draw a direct line from each example back to a specific requirement in the JD.\n" +
-    "Paragraph 3: Confident, brief close that reinforces fit. One or two sentences only.\n\n" +
+    "INPUTS: You have been given (1) the candidate's full resume below, and (2) the full job description. Read both carefully before writing a single word. The letter must be grounded in the actual content of both — never invent experience, never make generic claims that are not evidenced by the resume.\n\n" +
+    "PREPARATION: Identify the 3-4 most critical requirements in the JD — the specific skills, tools, responsibilities, or outcomes the employer explicitly calls out. Then cross-reference each against the candidate's resume. For each requirement, determine: (a) does the candidate have direct experience matching it? Or (b) do they have transferable skills from adjacent experience that is relevant?\n\n" +
+    "HONESTY RULE: Do NOT overstate or exaggerate. If the candidate lacks direct experience in a key requirement, the letter must acknowledge this honestly and pivot to the closest transferable skill or experience they do have — framing it as 'while I haven't worked directly in X, my experience doing Y gave me [specific transferable skill], which I would apply here by doing Z.' This builds credibility and trust. Never fabricate direct experience that is not on the resume.\n\n" +
+    "STRICT RULES: No em-dashes or en-dashes. No hollow filler phrases like 'I am writing to express my interest' or 'I am excited to apply'. No sycophantic openers. No corporate buzzwords. No vague claims unless immediately tied to a specific named example from the resume. 3 focused paragraphs only.\n\n" +
+    "Paragraph 1: Open with a hook that names the role, then immediately draw a direct, specific connection between the candidate's most relevant background and the JD's most critical requirement. If this is a direct experience match, state it explicitly. If it is a transferable skill, frame it as such — name the gap, then bridge it to their adjacent strength.\n" +
+    "Paragraph 2: Address 3-4 key requirements from the JD, one at a time, using concrete examples from the resume. For each: (1) state which JD requirement you are addressing, (2) cite the specific role or experience from the resume, (3) describe what they actually did, (4) explicitly connect it to the JD requirement. If there is a gap, name it and pivot to the transferable skill. A hiring manager should see both honesty about fit AND evidence of genuine capability.\n" +
+    "Paragraph 3: Confident, brief close that reinforces overall fit. One or two sentences only.\n\n" +
     "OUTPUT ONLY the 3 body paragraphs. Do NOT include name, closing, or sign-off.\n\n" +
     "Candidate: " + (settings.name || "the applicant") + "\n" +
-    "Full Resume (mine the full history for relevant experience):\n" + tailoredText.slice(0, 3500) + "\n" +
-    "Company: " + company + "\nRole: " + role + "\nJOB DESCRIPTION (identify the top 3-4 requirements and make sure the letter explicitly addresses each one):\n" + jobDescription.slice(0, 2500)
+    "Full Resume (cross-reference this against the JD for every claim you make):\n" + tailoredText.slice(0, 3500) + "\n" +
+    "Company: " + company + "\nRole: " + role + "\nFULL JOB DESCRIPTION (identify the top 3-4 requirements, note any where the candidate lacks direct experience, and bridge them to transferable skills from the resume):\n" + jobDescription.slice(0, 2500)
   const rawCL = await callClaude([{ role:"user", content: clPrompt }], null, 1500);
   results.coverLetterBody = stripCoverLetterSignOff(stripEmDashes(rawCL), settings.name);
   results.coverLetter = results.coverLetterBody;
