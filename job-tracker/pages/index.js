@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import Head from "next/head";
 
-// ─── Constants ──────────────────────────────────────────────────────────────
+// âââ Constants ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const STAGES = ["Applied","Phone Screen","Interview","Final Round","Offer","Rejected"];
 const STAGE_COLORS = {
   "Applied":      { bg:"#EEF2FF", text:"#4338CA", dot:"#6366F1" },
@@ -20,7 +20,7 @@ const CHECKLIST_ITEMS = [
   "Follow-up scheduled",
 ];
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// âââ Helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function extractDocId(url) {
   const m = url?.match(/\/d\/([a-zA-Z0-9_-]+)/);
   return m ? m[1] : null;
@@ -35,7 +35,7 @@ function isOverdue(app) {
   return new Date(app.followUpDate + "T00:00:00") < todayDate();
 }
 
-// ─── API Calls ──────────────────────────────────────────────────────────────
+// âââ API Calls ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function callClaude(messages, system, maxTokens = 2000) {
   const res = await fetch("/api/claude", {
     method: "POST",
@@ -57,7 +57,7 @@ async function driveAction(action, params) {
   return data;
 }
 
-// ─── UI Primitives ──────────────────────────────────────────────────────────
+// âââ UI Primitives ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 const s = {
   card: { background:"#fff", borderRadius:14, border:"1.5px solid #EAECF0" },
   label: { display:"block", fontSize:11, fontWeight:700, color:"#6B7280", marginBottom:5, letterSpacing:"0.05em", textTransform:"uppercase" },
@@ -119,7 +119,7 @@ function ScorePill({ score }) {
   const bg    = score >= 80 ? "#D1FAE5" : score >= 60 ? "#FEF9C3" : "#FEE2E2";
   return (
     <span style={{ background:bg, color, padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:700, display:"inline-flex", alignItems:"center", gap:4 }}>
-      ◎ {score}% match
+      â {score}% match
     </span>
   );
 }
@@ -137,7 +137,7 @@ function Modal({ title, subtitle, onClose, width = 640, children }) {
             <h2 style={{ margin:0, fontFamily:"'Fraunces',serif", fontSize:20, color:"#111827", fontWeight:700 }}>{title}</h2>
             {subtitle && <p style={{ margin:"3px 0 0", fontSize:13, color:"#9CA3AF" }}>{subtitle}</p>}
           </div>
-          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:24, cursor:"pointer", color:"#9CA3AF", lineHeight:1, padding:4 }}>×</button>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:24, cursor:"pointer", color:"#9CA3AF", lineHeight:1, padding:4 }}>Ã</button>
         </div>
         <div style={{ padding:28 }}>{children}</div>
       </div>
@@ -145,7 +145,7 @@ function Modal({ title, subtitle, onClose, width = 640, children }) {
   );
 }
 
-// ─── Settings ───────────────────────────────────────────────────────────────
+// âââ Settings âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDisconnectDrive }) {
   const [local, setLocal] = useState(settings);
   const set = (k, v) => setLocal(prev => ({ ...prev, [k]: v }));
@@ -159,7 +159,7 @@ function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDis
         </p>
         {driveConnected ? (
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <span style={{ background:"#D1FAE5", color:"#065F46", padding:"6px 14px", borderRadius:20, fontSize:13, fontWeight:700 }}>✓ Google Drive connected</span>
+            <span style={{ background:"#D1FAE5", color:"#065F46", padding:"6px 14px", borderRadius:20, fontSize:13, fontWeight:700 }}>â Google Drive connected</span>
             <Btn variant="ghost" onClick={onDisconnectDrive} style={{ fontSize:12 }}>Disconnect</Btn>
           </div>
         ) : (
@@ -178,11 +178,11 @@ function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDis
       <div style={{ ...s.card, padding:24, marginBottom:20 }}>
         <h3 style={{ fontFamily:"'Fraunces',serif", fontSize:17, color:"#111827", marginBottom:6 }}>Base Resume</h3>
         <p style={{ fontSize:13, color:"#6B7280", lineHeight:1.65, marginBottom:18 }}>
-          Your master Google Doc resume. The AI reads this and uses it as the template — preserving your formatting and structure — when tailoring for each job.
+          Your master Google Doc resume. The AI reads this and uses it as the template â preserving your formatting and structure â when tailoring for each job.
         </p>
         <Inp label="Base Resume Google Doc URL" value={local.baseResumeUrl || ""} onChange={e => set("baseResumeUrl", e.target.value)} placeholder="https://docs.google.com/document/d/..." />
-        <Inp label="Resumes Folder ID" value={local.resumeFolderId || ""} onChange={e => set("resumeFolderId", e.target.value)} placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" hint="Open your Resumes folder in Drive → copy the ID from the URL after /folders/" />
-        <Inp label="Cover Letters Folder ID" value={local.clFolderId || ""} onChange={e => set("clFolderId", e.target.value)} placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" hint="Open your Cover Letters folder in Drive → copy the ID from the URL after /folders/" />
+        <Inp label="Resumes Folder ID" value={local.resumeFolderId || ""} onChange={e => set("resumeFolderId", e.target.value)} placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" hint="Open your Resumes folder in Drive â copy the ID from the URL after /folders/" />
+        <Inp label="Cover Letters Folder ID" value={local.clFolderId || ""} onChange={e => set("clFolderId", e.target.value)} placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" hint="Open your Cover Letters folder in Drive â copy the ID from the URL after /folders/" />
       </div>
       {/* Personal details */}
       <div style={{ ...s.card, padding:24, marginBottom:24 }}>
@@ -202,7 +202,7 @@ function SettingsTab({ settings, onChange, driveConnected, onConnectDrive, onDis
   );
 }
 
-// ─── Helpers: post-processing ────────────────────────────────────────────
+// âââ Helpers: post-processing ââââââââââââââââââââââââââââââââââââââââââââ
 function stripEmDashes(text) {
   if (!text) return text;
   return text
@@ -224,7 +224,7 @@ function stripCoverLetterSignOff(text, senderName) {
   return t.trimEnd();
 }
 
-// ─── AI Pipeline ──────────────────────────────────────────────────────
+// âââ AI Pipeline ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function runAIPipeline({ jobDescription, company, role, settings, onStatus }) {
   const results = {
     coverLetter:"", coverLetterBody:"",
@@ -253,22 +253,25 @@ async function runAIPipeline({ jobDescription, company, role, settings, onStatus
   onStatus("Tailoring your resume to the job...");
   let replacements = [];
   try {
-    const claudePrompt = "You are an expert resume writer. Tailor a resume for a specific role by producing surgical text replacements that preserve the document's exact structure and formatting.\n\n"
-      + "You will be given the resume as a JSON array of paragraph strings (exactly as they appear in the document). For each paragraph you want to change, output a replacement pair.\n\n"
-      + "RULES:\n"
-      + "- Only change text content, never change structure or add/remove sections\n"
-      + "- Mirror keywords and phrases from the JD naturally\n"
-      + "- Do NOT invent experience or qualifications\n"
-      + "- Keep bullet points as bullet points, just update the text\n"
-      + "- NEVER use em-dashes or en-dashes\n"
-      + "- Return ONLY a valid JSON array of objects with exactly these keys: oldText and newText\n"
-      + "- oldText must be the EXACT string from the paragraphs array (copy it precisely)\n"
-      + "- newText is your improved version\n"
-      + "- Only include paragraphs that genuinely need changing\n"
-      + "- Aim for 8-15 targeted replacements\n\n"
-      + "RESUME PARAGRAPHS (JSON array):\n" + JSON.stringify(baseParagraphs) + "\n\n"
-      + "JOB DESCRIPTION:\n" + jobDescription + "\n\n"
-      + "COMPANY: " + company + "\nROLE: " + role + "\n\nReturn ONLY the JSON array, no markdown, no explanation.";
+    const claudePrompt = "You are an expert resume writer. Your ONLY job is to tailor this specific resume for this specific job description by producing surgical text replacements.\n\n" +
+        "You will receive the resume as a JSON array of paragraph strings and a job description. Study the JD carefully: identify the top 5-7 required skills, responsibilities, and qualities the employer is looking for. Then rewrite bullet points and summary lines so the resume speaks DIRECTLY to those requirements.\n\n" +
+        "RULES:\n" +
+        "- Read the JD first. Identify the employer's top priorities (skills, tools, scope of work, outcomes they care about).\n" +
+        "- Rewrite bullets so they directly address those priorities. Use the JD's exact language and keywords where accurate.\n" +
+        "- Make the connection between the candidate's experience and the JD obvious and explicit, not implied.\n" +
+        "- Prioritize changing bullets in the most relevant roles. Surface the most JD-relevant accomplishments.\n" +
+        "- Only change text content, never change structure or add/remove sections.\n" +
+        "- Do NOT invent experience or qualifications.\n" +
+        "- Keep bullet points as bullet points, just update the text.\n" +
+        "- NEVER use em-dashes or en-dashes.\n" +
+        "- Return ONLY a valid JSON array of objects with exactly these keys: oldText and newText.\n" +
+        "- oldText must be the EXACT string from the paragraphs array (copy it precisely).\n" +
+        "- newText is your improved version.\n" +
+        "- Only include paragraphs that genuinely need changing.\n" +
+        "- Aim for 8-15 targeted replacements focused on the most impactful sections.\n\n" +
+        "RESUME PARAGRAPHS (JSON array):\n" + JSON.stringify(baseParagraphs) + "\n\n" +
+        "JOB DESCRIPTION:\n" + jobDescription + "\n\n" +
+        "COMPANY: " + company + "\nROLE: " + role + "\n\nReturn ONLY the JSON array, no markdown, no explanation.";
     const rawReplacements = await callClaude([{ role:"user", content: claudePrompt }], null, 4000);
     let parsed = rawReplacements.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
     const arrMatch = parsed.match(/(\[[\s\S]*\])/);
@@ -320,15 +323,16 @@ async function runAIPipeline({ jobDescription, company, role, settings, onStatus
 
   // 5. Cover letter
   onStatus("Drafting your cover letter...");
-  const clPrompt = "Write a cover letter body (3 paragraphs only, no header/sign-off) for this candidate applying to this role.\n\n"
-    + "STRICT RULES: No em-dashes or en-dashes. No hollow filler phrases like 'I am writing to express my interest' or 'I am excited to apply'. No sycophantic openers. No corporate buzzwords. 3 focused paragraphs only.\n\n"
-    + "Paragraph 1: Open with a sharp, specific hook that names the role and ties the candidate's most relevant experience or career throughline directly to what this company or role needs. Reference something concrete from their background, not a generic claim.\n"
-    + "Paragraph 2: Draw on 3-4 specific, concrete examples pulled from across the candidate's full career history (not just the most recent role) that directly address the key requirements in the JD. For each example, name the role or context it came from and connect it explicitly to what the JD is asking for. Be specific: mention real skills, initiatives, outcomes, or scope of work. Do not speak in generalities.\n"
-    + "Paragraph 3: Confident, brief close that reinforces fit and invites next steps. One or two sentences only.\n\n"
-    + "OUTPUT ONLY the 3 body paragraphs. Do NOT include name, closing, or sign-off.\n\n"
-    + "Candidate: " + (settings.name || "the applicant") + "\n"
-    + "Full Resume (mine the full history for relevant experience):\n" + tailoredText.slice(0, 3500) + "\n"
-    + "Company: " + company + "\nRole: " + role + "\nJD (pay close attention to required skills and responsibilities):\n" + jobDescription.slice(0, 2500);
+  const clPrompt = "Write a cover letter body (3 paragraphs, no header/sign-off) for this candidate applying to this role.\n\n" +
+    "PREPARATION: Before writing, read the entire JD and identify the 3-4 most critical requirements: the specific skills, tools, responsibilities, or qualities the employer explicitly calls out. The letter MUST directly and specifically address each of these using concrete examples from the candidate's actual experience. Do not address them generically.\n\n" +
+    "STRICT RULES: No em-dashes or en-dashes. No hollow filler phrases like 'I am writing to express my interest' or 'I am excited to apply'. No sycophantic openers. No corporate buzzwords. No vague claims like 'simplifying complex processes' or 'driving results' unless immediately tied to a specific named example. 3 focused paragraphs only.\n\n" +
+    "Paragraph 1: Open with a hook that names the role, then immediately draw a direct, specific connection between the candidate's most relevant background and the JD's most critical requirement. Reference a real part of their experience, not a generic claim.\n" +
+    "Paragraph 2: Draw on 3-4 concrete examples from across the candidate's full career that directly map to the key requirements in the JD. For each example: (1) name the role or context it came from, (2) describe the specific skill or action, (3) explicitly state how it addresses what the JD is asking for. A hiring manager should be able to draw a direct line from each example back to a specific requirement in the JD.\n" +
+    "Paragraph 3: Confident, brief close that reinforces fit. One or two sentences only.\n\n" +
+    "OUTPUT ONLY the 3 body paragraphs. Do NOT include name, closing, or sign-off.\n\n" +
+    "Candidate: " + (settings.name || "the applicant") + "\n" +
+    "Full Resume (mine the full history for relevant experience):\n" + tailoredText.slice(0, 3500) + "\n" +
+    "Company: " + company + "\nRole: " + role + "\nJOB DESCRIPTION (identify the top 3-4 requirements and make sure the letter explicitly addresses each one):\n" + jobDescription.slice(0, 2500)
   const rawCL = await callClaude([{ role:"user", content: clPrompt }], null, 1500);
   results.coverLetterBody = stripCoverLetterSignOff(stripEmDashes(rawCL), settings.name);
   results.coverLetter = results.coverLetterBody;
@@ -379,7 +383,7 @@ async function runAIPipeline({ jobDescription, company, role, settings, onStatus
   return results;
 }
 
-// ─── Add Application Modal ──────────────────────────────────────────────────
+// âââ Add Application Modal ââââââââââââââââââââââââââââââââââââââââââââââââââ
 function AddAppModal({ settings, onSave, onClose }) {
   const [step, setStep]       = useState("form");
   const [status, setStatus]   = useState("");
@@ -410,7 +414,7 @@ function AddAppModal({ settings, onSave, onClose }) {
         try {
           const extractText = await callClaude(
             [{ role:"user", content:`Extract the following information from this job posting. Return ONLY valid JSON (no markdown, no preamble):
-{"company": "Acme Corp", "role": "Senior Product Manager", "salary": "$120k–$150k"}
+{"company": "Acme Corp", "role": "Senior Product Manager", "salary": "$120kâ$150k"}
 
 If a field is not found, use an empty string "".
 For salary, search the entire posting for any compensation mention: base pay, annual salary, salary range, pay range, hourly rate, wage. Look for dollar amounts and ranges. Include the full value exactly as written. If not found, use "".
@@ -428,14 +432,14 @@ ${data.text}`}],
             salary:  extracted.salary  || f.salary,
           }));
         } catch {
-          // extraction failed silently — JD is still populated
+          // extraction failed silently â JD is still populated
         }
         setExtracting(false);
       } else {
-        set("jobDescription", data.error || "Could not fetch — please paste the job description manually.");
+        set("jobDescription", data.error || "Could not fetch â please paste the job description manually.");
       }
     } catch {
-      set("jobDescription", "Could not fetch — please paste the job description manually.");
+      set("jobDescription", "Could not fetch â please paste the job description manually.");
     }
     setScraping(false);
     setExtracting(false);
@@ -481,27 +485,27 @@ ${data.text}`}],
   }
 
   if (step === "processing") return (
-    <Modal title="Building your application…" onClose={() => {}} width={460}>
+    <Modal title="Building your applicationâ¦" onClose={() => {}} width={460}>
       <div style={{ textAlign:"center", padding:"28px 0 16px" }}>
         <div style={{ width:52, height:52, border:"3px solid #E5E7EB", borderTopColor:"#6366F1", borderRadius:"50%", animation:"spin 0.8s linear infinite", margin:"0 auto 20px" }} />
-        <p style={{ fontSize:15, color:"#374151", fontWeight:600, marginBottom:8 }}>{status || "Processing…"}</p>
-        <p style={{ fontSize:13, color:"#9CA3AF" }}>Usually takes 30–60 seconds</p>
+        <p style={{ fontSize:15, color:"#374151", fontWeight:600, marginBottom:8 }}>{status || "Processingâ¦"}</p>
+        <p style={{ fontSize:13, color:"#9CA3AF" }}>Usually takes 30â60 seconds</p>
       </div>
     </Modal>
   );
 
   if (step === "done" && result) return (
-    <Modal title="Application ready! 🎉" subtitle={`${form.company} · ${form.role}`} onClose={onClose} width={620}>
+    <Modal title="Application ready! ð" subtitle={`${form.company} Â· ${form.role}`} onClose={onClose} width={620}>
       <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom:20 }}>
         <ScorePill score={result.keywordScore} />
         {result.resumeDocUrl && (
           <a href={result.resumeDocUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#4338CA", fontWeight:700, background:"#EEF2FF", padding:"4px 12px", borderRadius:20, display:"inline-flex", alignItems:"center", gap:4 }}>
-            📄 Resume saved ↗
+            ð Resume saved â
           </a>
         )}
         {result.clDocUrl && (
           <a href={result.clDocUrl} target="_blank" rel="noreferrer" style={{ fontSize:12, color:"#4338CA", fontWeight:700, background:"#EEF2FF", padding:"4px 12px", borderRadius:20, display:"inline-flex", alignItems:"center", gap:4 }}>
-            ✉ Cover letter saved ↗
+            â Cover letter saved â
           </a>
         )}
       </div>
@@ -544,7 +548,7 @@ ${data.text}`}],
       <div style={{ background:"#F9FAFB", borderRadius:10, padding:16, marginBottom:20, maxHeight:200, overflow:"auto" }}>
         <div style={s.label}>Cover Letter Preview</div>
         <div style={{ fontSize:13, lineHeight:1.75, color:"#374151", whiteSpace:"pre-wrap", marginTop:8 }}>
-          {result.coverLetter?.slice(0, 500)}…
+          {result.coverLetter?.slice(0, 500)}â¦
         </div>
       </div>
 
@@ -562,31 +566,31 @@ ${data.text}`}],
         <Inp label="Role *" value={form.role} onChange={e => set("role", e.target.value)} placeholder="Product Manager" />
         <Inp label="Applied Date" type="date" value={form.appliedDate} onChange={e => set("appliedDate", e.target.value)} />
         <Inp label="Follow-up Date" type="date" value={form.followUpDate} onChange={e => set("followUpDate", e.target.value)} />
-        <Inp label="Salary/Salary Range" value={form.salary} onChange={e => set("salary", e.target.value)} placeholder="$120k–$150k" />
+        <Inp label="Salary/Salary Range" value={form.salary} onChange={e => set("salary", e.target.value)} placeholder="$120kâ$150k" />
         <Sel label="Status" value={form.status} onChange={e => set("status", e.target.value)} options={STAGES} />
       </div>
-      <Field label="Job Posting URL" hint="Paste the URL and click Fetch — we'll extract the JD and auto-fill company, role & salary when available">
+      <Field label="Job Posting URL" hint="Paste the URL and click Fetch â we'll extract the JD and auto-fill company, role & salary when available">
         <div style={{ display:"flex", gap:8 }}>
           <input value={form.jobUrl} onChange={e => set("jobUrl", e.target.value)} placeholder="https://..." style={{ ...s.input, flex:1 }} />
           <Btn variant="secondary" onClick={scrapeUrl} loading={scraping || extracting} disabled={!form.jobUrl}>
-            {extracting ? "Extracting…" : "Fetch JD"}
+            {extracting ? "Extractingâ¦" : "Fetch JD"}
           </Btn>
         </div>
       </Field>
-      <Txt label="Job Description *" value={form.jobDescription} onChange={e => set("jobDescription", e.target.value)} placeholder="Paste the full job description here, or use Fetch JD above…" style={{ minHeight:140 }} />
-      <Txt label="Notes" value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Recruiter name, referral contact, salary details, why you're interested…" />
+      <Txt label="Job Description *" value={form.jobDescription} onChange={e => set("jobDescription", e.target.value)} placeholder="Paste the full job description here, or use Fetch JD aboveâ¦" style={{ minHeight:140 }} />
+      <Txt label="Notes" value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Recruiter name, referral contact, salary details, why you're interestedâ¦" />
       <div style={{ background:"#EEF2FF", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:13, color:"#4338CA" }}>
-        ✦ Clicking <strong>Tailor & Save</strong> will: read your base resume, tailor it to this job, write a cover letter, score keyword match, and save both docs to your Google Drive automatically.
+        â¦ Clicking <strong>Tailor & Save</strong> will: read your base resume, tailor it to this job, write a cover letter, score keyword match, and save both docs to your Google Drive automatically.
       </div>
       <div style={{ display:"flex", gap:10, justifyContent:"flex-end" }}>
         <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
-        <Btn variant="accent" onClick={handleSubmit}>✦ Tailor & Save</Btn>
+        <Btn variant="accent" onClick={handleSubmit}>â¦ Tailor & Save</Btn>
       </div>
     </Modal>
   );
 }
 
-// ─── Chat Editor ────────────────────────────────────────────────────────────
+// âââ Chat Editor ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function ChatEditor({ app, docType, onClose, onUpdate }) {
   const [messages, setMessages]   = useState([]);
   const [input, setInput]         = useState("");
@@ -635,7 +639,7 @@ CHANGES: [brief description of what you changed]`,
   }
 
   return (
-    <Modal title={`Edit ${docLabel} with AI`} subtitle={`${app.company} · ${app.role}`} onClose={onClose} width={780}>
+    <Modal title={`Edit ${docLabel} with AI`} subtitle={`${app.company} Â· ${app.role}`} onClose={onClose} width={780}>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20 }}>
         <div>
           <div style={s.label}>{docLabel} (live)</div>
@@ -644,7 +648,7 @@ CHANGES: [brief description of what you changed]`,
           </div>
           {(docType === "resume" ? app.resumeDocUrl : app.clDocUrl) && (
             <a href={docType === "resume" ? app.resumeDocUrl : app.clDocUrl} target="_blank" rel="noreferrer" style={{ display:"inline-flex", alignItems:"center", gap:5, marginTop:10, fontSize:12, color:"#6366F1", fontWeight:600 }}>
-              Open in Google Drive ↗
+              Open in Google Drive â
             </a>
           )}
         </div>
@@ -667,7 +671,7 @@ CHANGES: [brief description of what you changed]`,
             ))}
             {loading && (
               <div style={{ alignSelf:"flex-start", background:"#fff", border:"1.5px solid #E5E7EB", padding:"8px 12px", borderRadius:10, fontSize:13, color:"#9CA3AF" }}>
-                Updating…
+                Updatingâ¦
               </div>
             )}
             <div ref={bottomRef} />
@@ -682,7 +686,7 @@ CHANGES: [brief description of what you changed]`,
   );
 }
 
-// ─── App Detail ─────────────────────────────────────────────────────────────
+// âââ App Detail âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function AppDetail({ app, onClose, onEdit, onDelete, onOpenChat, onChecklistChange }) {
   const [checklist, setChecklist] = useState(app.checklist || {});
   const overdue    = isOverdue(app);
@@ -699,11 +703,11 @@ function AppDetail({ app, onClose, onEdit, onDelete, onOpenChat, onChecklistChan
       <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:20 }}>
         <Badge status={app.status} />
         <ScorePill score={app.keywordScore} />
-        {overdue && <span style={{ fontSize:11, fontWeight:700, background:"#FEE2E2", color:"#DC2626", padding:"3px 10px", borderRadius:20 }}>⚠ Follow-up overdue</span>}
-        {app.salary && <span style={{ fontSize:11, fontWeight:700, background:"#F3F4F6", color:"#374151", padding:"3px 10px", borderRadius:20 }}>💰 {app.salary}</span>}
+        {overdue && <span style={{ fontSize:11, fontWeight:700, background:"#FEE2E2", color:"#DC2626", padding:"3px 10px", borderRadius:20 }}>â  Follow-up overdue</span>}
+        {app.salary && <span style={{ fontSize:11, fontWeight:700, background:"#F3F4F6", color:"#374151", padding:"3px 10px", borderRadius:20 }}>ð° {app.salary}</span>}
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:20 }}>
-        {[["Applied", app.appliedDate || "—"], ["Follow-up", app.followUpDate || "—"]].map(([label, val]) => (
+        {[["Applied", app.appliedDate || "â"], ["Follow-up", app.followUpDate || "â"]].map(([label, val]) => (
           <div key={label} style={{ background:"#F9FAFB", borderRadius:10, padding:"12px 16px" }}>
             <div style={{ fontSize:11, color:"#9CA3AF", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.05em", marginBottom:3 }}>{label}</div>
             <div style={{ fontSize:15, fontWeight:600, color:"#111827" }}>{val}</div>
@@ -732,13 +736,13 @@ function AppDetail({ app, onClose, onEdit, onDelete, onOpenChat, onChecklistChan
           <div style={{ ...s.label, marginBottom:10 }}>Keyword Insights</div>
           {app.matchedKeywords?.length > 0 && (
             <div style={{ marginBottom:8 }}>
-              <span style={{ fontSize:11, color:"#065F46", fontWeight:700 }}>✓ Matched: </span>
+              <span style={{ fontSize:11, color:"#065F46", fontWeight:700 }}>â Matched: </span>
               <span style={{ fontSize:12, color:"#374151" }}>{app.matchedKeywords.slice(0, 10).join(", ")}</span>
             </div>
           )}
           {app.missingKeywords?.length > 0 && (
             <div>
-              <span style={{ fontSize:11, color:"#DC2626", fontWeight:700 }}>✗ To add: </span>
+              <span style={{ fontSize:11, color:"#DC2626", fontWeight:700 }}>â To add: </span>
               <span style={{ fontSize:12, color:"#374151" }}>{app.missingKeywords.slice(0, 6).join(", ")}</span>
             </div>
           )}
@@ -777,13 +781,13 @@ function AppDetail({ app, onClose, onEdit, onDelete, onOpenChat, onChecklistChan
         <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
           {app.resumeLink && (
             <div style={{ display:"flex", gap:6, alignItems:"center", background:"#EEF2FF", borderRadius:9, padding:"8px 14px" }}>
-              <a href={app.resumeLink} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#4338CA", fontWeight:700 }}>📄 Resume ↗</a>
+              <a href={app.resumeLink} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#4338CA", fontWeight:700 }}>ð Resume â</a>
               <button onClick={() => onOpenChat("resume")} style={{ fontSize:11, color:"#6366F1", border:"1px solid #C7D2FE", borderRadius:6, background:"#fff", padding:"3px 9px", cursor:"pointer", fontFamily:"inherit", fontWeight:600 }}>Edit with AI</button>
             </div>
           )}
           {app.coverLetterLink && (
             <div style={{ display:"flex", gap:6, alignItems:"center", background:"#EEF2FF", borderRadius:9, padding:"8px 14px" }}>
-              <a href={app.coverLetterLink} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#4338CA", fontWeight:700 }}>✉ Cover Letter ↗</a>
+              <a href={app.coverLetterLink} target="_blank" rel="noreferrer" style={{ fontSize:13, color:"#4338CA", fontWeight:700 }}>â Cover Letter â</a>
               <button onClick={() => onOpenChat("cover")} style={{ fontSize:11, color:"#6366F1", border:"1px solid #C7D2FE", borderRadius:6, background:"#fff", padding:"3px 9px", cursor:"pointer", fontFamily:"inherit", fontWeight:600 }}>Edit with AI</button>
             </div>
           )}
@@ -805,7 +809,7 @@ function AppDetail({ app, onClose, onEdit, onDelete, onOpenChat, onChecklistChan
   );
 }
 
-// ─── Edit Form ──────────────────────────────────────────────────────────────
+// âââ Edit Form ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function EditForm({ app, onSave, onClose }) {
   const [f, setF] = useState(app);
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
@@ -816,7 +820,7 @@ function EditForm({ app, onSave, onClose }) {
         <Inp label="Role"        value={f.role}        onChange={e => set("role", e.target.value)} />
         <Inp label="Applied Date" type="date" value={f.appliedDate   || ""} onChange={e => set("appliedDate",   e.target.value)} />
         <Inp label="Follow-up Date" type="date" value={f.followUpDate || ""} onChange={e => set("followUpDate", e.target.value)} />
-        <Inp label="Salary/Salary Range" value={f.salary       || ""} onChange={e => set("salary",    e.target.value)} placeholder="$120k–$150k" />
+        <Inp label="Salary/Salary Range" value={f.salary       || ""} onChange={e => set("salary",    e.target.value)} placeholder="$120kâ$150k" />
         <Sel label="Status"      value={f.status}      onChange={e => set("status",    e.target.value)} options={STAGES} />
       </div>
       <Inp label="Resume Google Doc URL"      value={f.resumeLink      || ""} onChange={e => set("resumeLink",      e.target.value)} />
@@ -830,7 +834,7 @@ function EditForm({ app, onSave, onClose }) {
   );
 }
 
-// ─── Dashboard ──────────────────────────────────────────────────────────────
+// âââ Dashboard ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 function Dashboard({ apps }) {
   const counts = STAGES.reduce((a, stage) => { a[stage] = apps.filter(x => x.status === stage).length; return a; }, {});
   const total       = apps.length;
@@ -845,7 +849,7 @@ function Dashboard({ apps }) {
     { label:"Total Applied",      value: total,              accent:"#6366F1" },
     { label:"Response Rate",      value: `${responseRate}%`,  accent:"#10B981" },
     { label:"Interview Rate",     value: `${interviewRate}%`, accent:"#F59E0B" },
-    { label:"Avg Keyword Score",  value: avgScore ? `${avgScore}%` : "—", accent:"#8B5CF6" },
+    { label:"Avg Keyword Score",  value: avgScore ? `${avgScore}%` : "â", accent:"#8B5CF6" },
     { label:"Overdue Follow-ups", value: overdueCount, accent: overdueCount > 0 ? "#EF4444" : "#10B981" },
   ];
   return (
@@ -891,7 +895,7 @@ function Dashboard({ apps }) {
               <div key={app.id} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 16px", background:"#F9FAFB", borderRadius:10 }}>
                 <div>
                   <div style={{ fontSize:14, fontWeight:600, color:"#111827" }}>
-                    {app.company} <span style={{ color:"#9CA3AF", fontWeight:400 }}>· {app.role}</span>
+                    {app.company} <span style={{ color:"#9CA3AF", fontWeight:400 }}>Â· {app.role}</span>
                   </div>
                   {app.appliedDate && <div style={{ fontSize:12, color:"#9CA3AF", marginTop:2 }}>{app.appliedDate}</div>}
                 </div>
@@ -908,7 +912,7 @@ function Dashboard({ apps }) {
   );
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
+// âââ Main Page ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 export default function JobTracker() {
   const { data: session } = useSession();
   const [apps, setApps]       = useState([]);
@@ -998,7 +1002,7 @@ export default function JobTracker() {
       <Head>
         <title>Job Tracker</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>" />
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ð</text></svg>" />
       </Head>
       <div style={{ minHeight:"100vh", background:"#F7F7F9" }}>
         {/* Header */}
@@ -1012,7 +1016,7 @@ export default function JobTracker() {
                 </h1>
                 <p style={{ margin:"3px 0 0", color:"#6B7280", fontSize:13 }}>
                   {apps.length} application{apps.length !== 1 ? "s" : ""}
-                  {overdueCount > 0 && <span style={{ color:"#F87171", marginLeft:8 }}>· {overdueCount} follow-up{overdueCount !== 1 ? "s" : ""} overdue</span>}
+                  {overdueCount > 0 && <span style={{ color:"#F87171", marginLeft:8 }}>Â· {overdueCount} follow-up{overdueCount !== 1 ? "s" : ""} overdue</span>}
                 </p>
               </div>
               <div style={{ display:"flex", gap:10, alignItems:"center" }}>
@@ -1050,13 +1054,13 @@ export default function JobTracker() {
             <>
               {!session && (
                 <div style={{ background:"#FEF9C3", border:"1.5px solid #FDE68A", borderRadius:10, padding:"12px 18px", marginBottom:20, fontSize:13, color:"#854D0E", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
-                  <span>⚡ Connect Google Drive to enable auto-saving tailored resumes and cover letters.</span>
+                  <span>â¡ Connect Google Drive to enable auto-saving tailored resumes and cover letters.</span>
                   <Btn variant="secondary" onClick={() => signIn("google")} style={{ fontSize:12, padding:"6px 14px" }}>Connect now</Btn>
                 </div>
               )}
               {!settings.baseResumeUrl && (
                 <div style={{ background:"#EEF2FF", border:"1.5px solid #C7D2FE", borderRadius:10, padding:"12px 18px", marginBottom:20, fontSize:13, color:"#4338CA", display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
-                  <span>📄 Add your base resume URL in Settings to enable AI tailoring.</span>
+                  <span>ð Add your base resume URL in Settings to enable AI tailoring.</span>
                   <Btn variant="secondary" onClick={() => setTab("settings")} style={{ fontSize:12, padding:"6px 14px" }}>Go to Settings</Btn>
                 </div>
               )}
@@ -1067,12 +1071,12 @@ export default function JobTracker() {
                     {stage}{stage !== "All" && counts[stage] > 0 ? ` (${counts[stage]})` : ""}
                   </button>
                 ))}
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" style={{ ...s.input, width:180, marginLeft:"auto", fontSize:13, padding:"7px 12px" }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Searchâ¦" style={{ ...s.input, width:180, marginLeft:"auto", fontSize:13, padding:"7px 12px" }} />
               </div>
               {/* Table */}
               {filtered.length === 0 ? (
                 <div style={{ ...s.card, padding:"64px 0", textAlign:"center" }}>
-                  <div style={{ fontSize:40, marginBottom:12 }}>📋</div>
+                  <div style={{ fontSize:40, marginBottom:12 }}>ð</div>
                   <div style={{ fontSize:16, fontWeight:600, color:"#374151", marginBottom:6 }}>No applications yet</div>
                   <div style={{ fontSize:13, color:"#9CA3AF" }}>Click "New Application" to get started</div>
                 </div>
@@ -1125,9 +1129,9 @@ export default function JobTracker() {
                               </select>
                             </td>
                             <td style={{ padding:"13px 16px" }} onClick={() => setDetailApp(app)}><ScorePill score={app.keywordScore} /></td>
-                            <td style={{ padding:"13px 16px", fontSize:12, color:"#9CA3AF" }} onClick={() => setDetailApp(app)}>{app.appliedDate || "—"}</td>
+                            <td style={{ padding:"13px 16px", fontSize:12, color:"#9CA3AF" }} onClick={() => setDetailApp(app)}>{app.appliedDate || "â"}</td>
                             <td style={{ padding:"13px 16px", fontSize:12, color: od ? "#D97706" : "#9CA3AF", fontWeight: od ? 700 : 400 }} onClick={() => setDetailApp(app)}>
-                              {app.followUpDate ? (od ? "⚠ " + app.followUpDate : app.followUpDate) : "—"}
+                              {app.followUpDate ? (od ? "â  " + app.followUpDate : app.followUpDate) : "â"}
                             </td>
                             <td style={{ padding:"13px 16px" }} onClick={() => setDetailApp(app)}>
                               <div style={{ display:"flex", alignItems:"center", gap:6 }}>
