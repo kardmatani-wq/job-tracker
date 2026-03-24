@@ -12,7 +12,7 @@ const STAGE_COLORS = {
   "Offer":        { bg:"#D1FAE5", text:"#065F46", dot:"#10B981" },
   "Rejected":     { bg:"#F3F4F6", text:"#6B7280", dot:"#9CA3AF" },
 }
-const CHECKLIST_ITEMS = 
+const CHECKLIST_ITEMS = [
   "Job URL / JD saved",
   "Resume tailored",
   "Cover letter written",
